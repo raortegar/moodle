@@ -346,6 +346,12 @@ class data_field_base {     // Base class for Database Field Types (see field/*/
         if (empty($this->field)) {   // No field has been defined yet, try and make one
             $this->define_default_field();
         }
+
+        // Throw an exception if field type doen't exist. Anyway user should never access to edit a field with an unknown fieldtype.
+        if ($this->type === 'unknown') {
+            throw new \moodle_exception(get_string('missingfieldtype', 'data', (object)['type' => $this->field->type]));
+        }
+
         echo $OUTPUT->box_start('generalbox boxaligncenter boxwidthwide');
 
         echo '<form id="editfield" action="'.$CFG->wwwroot.'/mod/data/field.php" method="post">'."\n";
@@ -363,7 +369,14 @@ class data_field_base {     // Base class for Database Field Types (see field/*/
 
         echo $OUTPUT->heading($this->name(), 3);
 
-        require_once($CFG->dirroot.'/mod/data/field/'.$this->type.'/mod.html');
+
+        $filepath = $CFG->dirroot.'/mod/data/field/'.$this->type.'/mod.html';
+
+        if (!file_exists($filepath)) {
+            throw new \moodle_exception(get_string('missingfieldtype', 'data', (object)['type' => $this->field->type]));
+        } else {
+            require_once($filepath);
+        }
 
         echo html_writer::start_div('mt-3');
         echo html_writer::tag('input', null, array('type' => 'submit', 'value' => $savebutton,
@@ -902,7 +915,12 @@ function data_get_field_from_id($fieldid, $data){
 function data_get_field_new($type, $data) {
     global $CFG;
 
-    require_once($CFG->dirroot.'/mod/data/field/'.$type.'/field.class.php');
+    $filepath = $CFG->dirroot.'/mod/data/field/'.$type.'/field.class.php';
+    // It should never access this method if the subfield class doesn't exist.
+    if (!file_exists($filepath)) {
+        throw new \moodle_exception('invalidfieldtype', 'data');
+    }
+    require_once($filepath);
     $newfield = 'data_field_'.$type;
     $newfield = new $newfield(0, $data);
     return $newfield;
@@ -922,8 +940,14 @@ function data_get_field_new($type, $data) {
 function data_get_field($field, $data, $cm=null) {
     global $CFG;
 
-    if ($field) {
-        require_once('field/'.$field->type.'/field.class.php');
+    if (isset($field->type)) {
+        $filepath = $CFG->dirroot.'/mod/data/field/'.$field->type.'/field.class.php';
+        if (!file_exists($filepath)) {
+            $newfield = new data_field_base($field);
+            return $newfield;
+        }
+
+        require_once($filepath);
         $newfield = 'data_field_'.$field->type;
         $newfield = new $newfield($field, $data, $cm);
         return $newfield;
@@ -1747,6 +1771,10 @@ function data_print_preference_form($data, $perpage, $search, $sort='', $order='
         $fieldname = preg_quote($fieldname, '/');
         $patterns[] = "/\[\[$fieldname\]\]/i";
         $searchfield = data_get_field_from_id($field->field->id, $data);
+
+        if ($searchfield->type === 'unknown') {
+            continue;
+        }
         if (!empty($search_array[$field->field->id]->data)) {
             $replacement[] = $searchfield->display_search_field($search_array[$field->field->id]->data);
         } else {
@@ -2420,7 +2448,7 @@ abstract class data_preset_importer {
      * @return bool
      */
     function import($overwritesettings) {
-        global $DB, $CFG;
+        global $DB, $CFG, $OUTPUT;
 
         $params = $this->get_preset_settings();
         $settings = $params->settings;
@@ -2458,7 +2486,12 @@ abstract class data_preset_importer {
                     unset($fieldobject);
                 } else {
                     /* Make a new field */
-                    include_once("field/$newfield->type/field.class.php");
+                    $filepath = "field/$newfield->type/field.class.php";
+                    if (!file_exists($filepath)) {
+                        echo $OUTPUT->notification(get_string('missingfieldtype', 'data',  (object)['type' => $newfield->type]));
+                        continue;
+                    }
+                    include_once($filepath);
 
                     if (!isset($newfield->description)) {
                         $newfield->description = '';
@@ -2906,7 +2939,12 @@ function data_import_csv($cm, $data, &$csvdata, $encoding, $fielddelimiter) {
                     unset($fieldnames[$id]); // To ensure the user provided content fields remain in the array once flipped.
                 } else {
                     $field = $rawfields[$name];
-                    require_once("$CFG->dirroot/mod/data/field/$field->type/field.class.php");
+                    $filepath = "$CFG->dirroot/mod/data/field/$field->type/field.class.php";
+                    if (!file_exists($filepath)) {
+                        $errorfield .= "'$name' ";
+                        continue;
+                    }
+                    require_once($filepath);
                     $classname = 'data_field_' . $field->type;
                     $fields[$name] = new $classname($field, $data, $cm);
                 }

@@ -271,9 +271,16 @@ switch ($mode) {
                 // Print confirmation message.
                 $field = data_get_field_from_id($fid, $data);
 
-                echo $OUTPUT->confirm('<strong>'.$field->name().': '.$field->field->name.'</strong><br /><br />'. get_string('confirmdeletefield','data'),
-                             'field.php?d='.$data->id.'&mode=delete&fid='.$fid.'&confirm=1',
-                             'field.php?d='.$data->id);
+                if ($field->type === 'unknown') {
+                    echo $OUTPUT->confirm('<strong>'.$field->field->type.': '.$field->field->name.'</strong><br /><br />'.
+                    get_string('confirmdeletefield', 'data'),
+                    'field.php?d='.$data->id.'&mode=delete&fid='.$fid.'&confirm=1',
+                    'field.php?d='.$data->id);
+                } else {
+                    echo $OUTPUT->confirm('<strong>'.$field->name().': '.$field->field->name.'</strong><br /><br />'. get_string('confirmdeletefield', 'data'),
+                    'field.php?d='.$data->id.'&mode=delete&fid='.$fid.'&confirm=1',
+                    'field.php?d='.$data->id);
+                }
 
                 echo $OUTPUT->footer();
                 exit;
@@ -339,6 +346,9 @@ $plugins = core_component::get_plugin_list('datafield');
 $menufield = array();
 
 foreach ($plugins as $plugin=>$fulldir){
+    if (!is_dir($fulldir)) {
+        continue;
+    }
     $menufield[$plugin] = get_string('pluginname', 'datafield_'.$plugin);    //get from language files
 }
 asort($menufield);    //sort in alphabetical order
@@ -400,6 +410,18 @@ if (($mode == 'new') && (!empty($newtype))) { // Adding a new field.
                     'mode'      => 'delete',
                 ));
 
+                // It display a notification when the field type does not exist.
+                if ($field->type === 'unknown') {
+                    echo $OUTPUT->notification(get_string('missingfieldtype', 'data',  (object)['type' => $field->field->type]));
+                    $table->data[] = array(
+                        $field->field->name,
+                        $field->field->type,
+                        $field->field->required ? get_string('yes') : get_string('no'),
+                        shorten_text($field->field->description, 30),
+                            html_writer::link($deleteurl, $OUTPUT->pix_icon('t/delete', get_string('delete')))
+                    );
+                    continue;
+                }
                 $table->data[] = array(
                     html_writer::link($displayurl, $field->field->name),
                     $field->image() . '&nbsp;' . $field->name(),

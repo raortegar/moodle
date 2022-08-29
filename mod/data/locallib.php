@@ -270,7 +270,6 @@ class data_portfolio_caller extends portfolio_module_caller_base {
             return true; // too early yet
         }
         foreach ($this->fieldtypes as $key => $field) {
-            require_once($CFG->dirroot . '/mod/data/field/' . $field .'/field.class.php');
             $this->fields[$key] = unserialize(serialize($this->fields[$key]));
         }
     }
@@ -1332,6 +1331,11 @@ function data_build_search_array($data, $paging, $searcharray, $defaults = null,
     if (!empty($fields)) {
         foreach ($fields as $field) {
             $searchfield = data_get_field_from_id($field->id, $data);
+
+            if ($searchfield->type === 'unknown') {
+                continue;
+            }
+
             // Get field data to build search sql with.  If paging is false, get from user.
             // If paging is true, get data from $searcharray which is obtained from the $SESSION (see line 116).
             if (!$paging) {

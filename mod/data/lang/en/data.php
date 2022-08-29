@@ -234,6 +234,7 @@ $string['invalidfieldid'] = 'Field ID is incorrect';
 $string['invalidfieldname'] = 'Please choose another name for this field';
 $string['invalidfieldtype'] = 'Field type is incorrect';
 $string['invalidid'] = 'Incorrect data ID';
+$string['missingfieldtype'] = 'Field type {$a->type} not found';
 $string['invalidpreset'] = '{$a} is not a preset.';
 $string['invalidrecord'] = 'Incorrect record';
 $string['invalidurl'] = 'The URL you just entered is not valid';
