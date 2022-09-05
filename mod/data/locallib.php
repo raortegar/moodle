@@ -969,7 +969,11 @@ function data_get_tag_title_field($dataid) {
         if ($field->addtemplateposition === false) {
             continue;
         }
-        require_once($CFG->dirroot . '/mod/data/field/' . $field->type . '/field.class.php');
+        $filepath = $CFG->dirroot . '/mod/data/field/' . $field->type . '/field.class.php';
+        if (!file_exists($filepath)) {
+            continue;
+        }
+        require_once($filepath);
         $classname = 'data_field_' . $field->type;
         $field->priority = $classname::get_priority();
         $filteredfields[] = $field;
@@ -1000,11 +1004,19 @@ function data_get_tag_title_field($dataid) {
  *
  * @param stdClass $field The field from the 'data_fields' table
  * @param stdClass $entry The entry from the 'data_records' table
- * @return string The title of the entry
+ * @return string|null It will return the title of the entry or null if the field type is not available.
  */
 function data_get_tag_title_for_entry($field, $entry) {
     global $CFG, $DB;
-    require_once($CFG->dirroot . '/mod/data/field/' . $field->type . '/field.class.php');
+
+    if (!isset($field->type)) {
+        return null;
+    }
+    $filepath = $CFG->dirroot . '/mod/data/field/' . $field->type . '/field.class.php';
+    if (!file_exists($filepath)) {
+        return null;
+    }
+    require_once($filepath);
 
     $classname = 'data_field_' . $field->type;
     $sql = "SELECT dc.*

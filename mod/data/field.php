@@ -272,15 +272,16 @@ switch ($mode) {
                 $field = data_get_field_from_id($fid, $data);
 
                 if ($field->type === 'unknown') {
-                    echo $OUTPUT->confirm('<strong>'.$field->field->type.': '.$field->field->name.'</strong><br /><br />'.
-                    get_string('confirmdeletefield', 'data'),
-                    'field.php?d='.$data->id.'&mode=delete&fid='.$fid.'&confirm=1',
-                    'field.php?d='.$data->id);
+                    $fieldtypename = get_string('unknown', 'data');
                 } else {
-                    echo $OUTPUT->confirm('<strong>'.$field->name().': '.$field->field->name.'</strong><br /><br />'. get_string('confirmdeletefield', 'data'),
-                    'field.php?d='.$data->id.'&mode=delete&fid='.$fid.'&confirm=1',
-                    'field.php?d='.$data->id);
+                    $fieldtypename = $field->name();
                 }
+                echo $OUTPUT->confirm(
+                    '<strong>' . $fieldtypename . ': ' . $field->field->name . '</strong><br /><br />' .
+                        get_string('confirmdeletefield', 'data'),
+                    'field.php?d=' . $data->id . '&mode=delete&fid=' . $fid . '&confirm=1',
+                    'field.php?d=' . $data->id
+                );
 
                 echo $OUTPUT->footer();
                 exit;
@@ -411,26 +412,25 @@ if (($mode == 'new') && (!empty($newtype))) { // Adding a new field.
                 ));
 
                 // It display a notification when the field type does not exist.
+                $deletelink = html_writer::link($deleteurl, $OUTPUT->pix_icon('t/delete', get_string('delete')));
+                $editlink = html_writer::link($displayurl, $OUTPUT->pix_icon('t/edit', get_string('edit')));
                 if ($field->type === 'unknown') {
                     echo $OUTPUT->notification(get_string('missingfieldtype', 'data',  (object)['type' => $field->field->type]));
-                    $table->data[] = array(
-                        $field->field->name,
-                        $field->field->type,
-                        $field->field->required ? get_string('yes') : get_string('no'),
-                        shorten_text($field->field->description, 30),
-                            html_writer::link($deleteurl, $OUTPUT->pix_icon('t/delete', get_string('delete')))
-                    );
-                    continue;
+                    $fieldnamedata = $field->field->name;
+                    $fieltypedata = $field->field->type;
+                    $fieldlinkdata = $deletelink;
+                } else {
+                    $fieldnamedata = html_writer::link($displayurl, $field->field->name);
+                    $fieltypedata = $field->image() . '&nbsp;' . $field->name();
+                    $fieldlinkdata = $editlink . '&nbsp;' . $deletelink;
                 }
-                $table->data[] = array(
-                    html_writer::link($displayurl, $field->field->name),
-                    $field->image() . '&nbsp;' . $field->name(),
+                $table->data[] = [
+                    $fieldnamedata,
+                    $fieltypedata,
                     $field->field->required ? get_string('yes') : get_string('no'),
                     shorten_text($field->field->description, 30),
-                    html_writer::link($displayurl, $OUTPUT->pix_icon('t/edit', get_string('edit'))) .
-                        '&nbsp;' .
-                        html_writer::link($deleteurl, $OUTPUT->pix_icon('t/delete', get_string('delete'))),
-                );
+                    $fieldlinkdata
+                ];
             }
         }
         echo html_writer::table($table);

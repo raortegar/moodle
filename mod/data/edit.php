@@ -260,25 +260,24 @@ if ($data->addtemplate){
     ///then we generate strings to replace
     foreach ($possiblefields as $eachfield){
         $field = data_get_field($eachfield, $data);
-
-        // Display an error in case the field type is not found.
-        if ($field->type === 'unknown') {
-            $patterns[] = "[[".$field->field->name."]]";
-            $replacements[] = $OUTPUT->notification(get_string('missingfieldtype', 'data', (object)['type' => $field->field->type]));
-            continue;
-        }
-
         // To skip unnecessary calls to display_add_field().
         if (strpos($data->addtemplate, "[[".$field->field->name."]]") !== false) {
-            // Replace the field tag.
-            $patterns[] = "[[".$field->field->name."]]";
-            $errors = '';
-            if (!empty($fieldnotifications[$field->field->name])) {
-                foreach ($fieldnotifications[$field->field->name] as $notification) {
-                    $errors .= $OUTPUT->notification($notification);
+            // Display an error in case the field type is not found.
+            if ($field->type === 'unknown') {
+                $patterns[] = "[[".$field->field->name."]]";
+                $replacements[] = $OUTPUT->notification(
+                    get_string('missingfieldtype', 'data', (object)['type' => $field->field->type]));
+            } else {
+                // Replace the field tag.
+                $patterns[] = "[[".$field->field->name."]]";
+                $errors = '';
+                if (!empty($fieldnotifications[$field->field->name])) {
+                    foreach ($fieldnotifications[$field->field->name] as $notification) {
+                        $errors .= $OUTPUT->notification($notification);
+                    }
                 }
+                $replacements[] = $errors . $field->display_add_field($rid, $datarecord);
             }
-            $replacements[] = $errors . $field->display_add_field($rid, $datarecord);
         }
 
         // Replace the field id tag.

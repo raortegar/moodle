@@ -933,26 +933,24 @@ function data_get_field_new($type, $data) {
  * input: $param $field - record from db
  *
  * @global object
- * @param object $field
- * @param object $data
- * @param object $cm
- * @return data_field_base
+ * @param object $field the field record
+ * @param object $data the data instance
+ * @param object|null $cm optional course module data
+ * @return data_field_base the field object instance or data_field_base if unkown type
  */
-function data_get_field($field, $data, $cm=null) {
+function data_get_field(stdClass $field, stdClass $data, ?stdClass $cm=null): data_field_base {
     global $CFG;
-
-    if (isset($field->type)) {
-        $filepath = $CFG->dirroot.'/mod/data/field/'.$field->type.'/field.class.php';
-        if (!file_exists($filepath)) {
-            $newfield = new data_field_base($field);
-            return $newfield;
-        }
-
-        require_once($filepath);
-        $newfield = 'data_field_'.$field->type;
-        $newfield = new $newfield($field, $data, $cm);
-        return $newfield;
+    if (!isset($field->type)) {
+        return new data_field_base($field);
     }
+    $filepath = $CFG->dirroot.'/mod/data/field/'.$field->type.'/field.class.php';
+    if (!file_exists($filepath)) {
+        return new data_field_base($field);
+    }
+    require_once($filepath);
+    $newfield = 'data_field_'.$field->type;
+    $newfield = new $newfield($field, $data, $cm);
+    return $newfield;
 }
 
 
