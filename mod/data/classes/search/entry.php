@@ -351,7 +351,13 @@ class entry extends \core_search\base_mod {
         global $CFG;
 
         $fieldtype = trim($fieldtype);
-        require_once($CFG->dirroot . '/mod/data/field/' . $fieldtype . '/field.class.php');
+
+        $fieldpath = $CFG->dirroot . '/mod/data/field/' . $fieldtype . '/field.class.php';
+        if (!file_exists($fieldpath)) {
+            return '';
+        }
+
+        require_once($fieldpath);
         return 'data_field_' . $fieldtype;
     }
 

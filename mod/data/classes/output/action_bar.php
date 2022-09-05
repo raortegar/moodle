@@ -85,6 +85,10 @@ class action_bar {
             $menufield = [];
 
             foreach ($plugins as $plugin => $fulldir) {
+                // Check to avoid use unexistence plugins.
+                if (!is_dir($fulldir)) {
+                    continue;
+                }
                 $menufield[$plugin] = get_string('pluginname', "datafield_{$plugin}");
             }
             asort($menufield);

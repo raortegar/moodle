@@ -72,6 +72,11 @@ class mod_data_export_form extends moodleform {
         $unsupportedfields = [];
         foreach ($this->_datafields as $field) {
             $label = get_string('fieldnametype', 'data', (object)['name' => $field->field->name, 'type' => $field->name()]);
+            // Display different label when the field type is unkown.
+            if ($field->type === 'unknown') {
+                $label = get_string('missingfieldtype', 'data', (object)['type' => $field->field->type]);
+            }
+
             if ($field->text_export_supported()) {
                 $numfieldsthatcanbeselected++;
                 $exportfields[] = $mform->createElement('advcheckbox', 'field_' . $field->field->id, '', $label,

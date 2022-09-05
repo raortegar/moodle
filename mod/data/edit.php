@@ -261,6 +261,13 @@ if ($data->addtemplate){
     foreach ($possiblefields as $eachfield){
         $field = data_get_field($eachfield, $data);
 
+        // Display an error in case the field type is not found.
+        if ($field->type === 'unknown') {
+            $patterns[] = "[[".$field->field->name."]]";
+            $replacements[] = $OUTPUT->notification(get_string('missingfieldtype', 'data', (object)['type' => $field->field->type]));
+            continue;
+        }
+
         // To skip unnecessary calls to display_add_field().
         if (strpos($data->addtemplate, "[[".$field->field->name."]]") !== false) {
             // Replace the field tag.
