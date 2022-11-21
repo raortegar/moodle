@@ -97,6 +97,17 @@ if ($hassiteconfig or has_any_capability($capabilities, $systemcontext)) {
             )
         );
 
+    $setting = new admin_setting_configduration('moodlecourse/completioneventsmaxtime',
+        new lang_string('completioneventsmaxtime', 'course'),
+        new lang_string('completioneventsmaxtime_help', 'course'),
+        31536000);
+    $setting->set_enabled_flag_options(admin_setting_flag::ENABLED, true);
+    $temp->add($setting);
+
+    $temp->add(new admin_setting_configcheckbox('moodlecourse/completioneventsvisible',
+        new lang_string('completioneventsvisible', 'course'),
+        new lang_string('completioneventsvisible_help', 'course'),
+        1));
     // Course format.
     $temp->add(new admin_setting_heading('courseformathdr', new lang_string('type_format', 'plugin'), ''));
 
