@@ -58,7 +58,7 @@ class refresh_mod_calendar_events_task extends adhoc_task {
         if (isset($this->get_custom_data()->courseid)) {
             $courseid = $this->get_custom_data()->courseid;
         } else {
-            $courseid = 0;
+            $courseid = 0;  // If 0 all events will be updated.
         }
 
         $pluginmanager = core_plugin_manager::instance();
@@ -71,6 +71,7 @@ class refresh_mod_calendar_events_task extends adhoc_task {
             }
             // Refresh events.
             mtrace('Refreshing events for ' . $plugin->name);
+
             course_module_bulk_update_calendar_events($plugin->name, $courseid);
         }
     }
