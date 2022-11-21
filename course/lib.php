@@ -1166,8 +1166,25 @@ function course_module_bulk_update_calendar_events($modulename, $courseid = 0) {
         }
     }
 
+    // Congiguration to define the maximum time range where the events will be updated.
+    $adminconfig = get_config($modulename);
+    if (isset($adminconfig->completioneventsmaxtime_enabled) && !empty($adminconfig->completioneventsmaxtime_enabled)) {
+        $date = new \DateTime('now', core_date::get_user_timezone_object(99));
+        $completionmaxtime = $date->getTimestamp() - $adminconfig->completioneventsmaxtime;
+    }
+    // Configuration to define if only visible events should be updated.
+    if (isset($adminconfig->completioneventsvisible) && $adminconfig->completioneventsvisible == true) {
+        $completionvisible = $adminconfig->completioneventsvisible;
+    }
+
     foreach ($instances as $instance) {
         if ($cm = get_coursemodule_from_instance($modulename, $instance->id, $instance->course)) {
+            if (isset($completionmaxtime) && $cm->completionexpected < $completionmaxtime) {
+                continue;
+            }
+            if (isset($completionvisible) && $cm->visible != true) {
+                continue;
+            }
             course_module_calendar_event_update_process($instance, $cm);
         }
     }

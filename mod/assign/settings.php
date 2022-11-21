@@ -107,6 +107,22 @@ if ($ADMIN->fulltree) {
                                                     -1,
                                                     $options));
 
+    $name = new lang_string('completioneventsmaxtime', 'mod_assign');
+    $description = new lang_string('completioneventsmaxtime_help', 'mod_assign');
+    $setting = new admin_setting_configduration('assign/completioneventsmaxtime',
+                                                    $name,
+                                                    $description,
+                                                    31536000);
+    $setting->set_enabled_flag_options(admin_setting_flag::ENABLED, false);
+    $settings->add($setting);
+
+    $name = new lang_string('completioneventsvisible', 'mod_assign');
+    $description = new lang_string('completioneventsvisible_help', 'mod_assign');
+    $settings->add(new admin_setting_configcheckbox('assign/completioneventsvisible',
+                                                    $name,
+                                                    $description,
+                                                    0));
+
     $name = new lang_string('defaultsettings', 'mod_assign');
     $description = new lang_string('defaultsettings_help', 'mod_assign');
     $settings->add(new admin_setting_heading('defaultsettings', $name, $description));
