@@ -59,6 +59,12 @@ $string['completion_setby:auto:done'] = 'Done: {$a->condition} (set by {$a->setb
 $string['completion_setby:auto:todo'] = 'To do: {$a->condition} (set by {$a->setby})';
 $string['completion_setby:manual:done'] = '{$a->activityname} is marked by {$a->setby} as done. Press to undo.';
 $string['completion_setby:manual:markdone'] = '{$a->activityname} is marked by {$a->setby} as not done. Press to mark as done.';
+$string['completioneventsmaxtime'] = 'Update calendar events maximun time';
+$string['completioneventsmaxtime_help'] = 'Maximum time to process the completion calendar events.
+This setting is useful to prevent performance issues with large moodle sites, stopping events from a log time being updated.';
+$string['completioneventsvisible'] = 'Update calendar events when is visible.';
+$string['completioneventsvisible_help'] = 'If is enabled it will update only the calendar events when the activity is visible,
+otherwise it will not update them. This prevents performance issues by reducing the number of events.';
 $string['completionrequirements'] = 'Completion requirements for {$a}';
 $string['coursealreadyfinished'] = 'Course already finished';
 $string['coursecontentnotification'] = 'Send content change notification';
