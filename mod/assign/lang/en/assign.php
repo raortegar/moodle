@@ -128,6 +128,12 @@ $string['collapsereviewpanel'] = 'Collapse review panel';
 $string['comment'] = 'Comment';
 $string['completiondetail:submit'] = 'Make a submission';
 $string['completionsubmit'] = 'Student must make a submission';
+$string['completioneventsmaxtime'] = 'Completion calendar events - Process maximum time ';
+$string['completioneventsmaxtime_help'] = 'This maximum time to process the completion calendar events.
+ This setting is useful to prevent performance issues with large moodle sites, stopping events from a log time being updated.';
+$string['completioneventsvisible'] = 'Completion calendar events - Process if visible';
+$string['completioneventsvisible_help'] = 'Process completion calendar events only if the activity is visible.
+ This setting is useful to prevent performance issues, it avoid creates, updates or deletes events of hidden activities.';
 $string['conversionexception'] = 'Could not convert assignment. Exception was: {$a}.';
 $string['configshowrecentsubmissions'] = 'Everyone can see notifications of submissions in recent activity reports.';
 $string['confirmsubmission'] = 'Are you sure you want to submit your work for grading? You will not be able to make any more changes.';
