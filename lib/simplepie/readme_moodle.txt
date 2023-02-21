@@ -21,3 +21,5 @@ To upgrade this library:
 Changes:
   * None. This import contains _NO_CHANGES_ to the simplepie.inc file, changes are
     controlled through OO extension of the classes instead.
+Note:
+  * 2023-01-30 Applied patch https://github.com/simplepie/simplepie/pull/799. See MDL-77103 for more details.
