@@ -24,6 +24,7 @@
 
 require_once(__DIR__ . '/../../../config.php');
 use tool_moodlenet\local\activity_packager;
+use tool_moodlenet\local\content_packager;
 
 $id = required_param('id', PARAM_INT); // The cmid.
 $download = optional_param('download', false, PARAM_BOOL);
@@ -40,10 +41,29 @@ $PAGE->set_url($url);
 $PAGE->set_title("Backup test");
 $PAGE->set_heading(" Backup test");
 
+
+// Start new functionality 
+[$course, $cminfo] = get_course_and_cm_from_cmid($id);
+$packager = new content_packager($cminfo);
+$file = $packager->get_package();
+
+// END new functionality 
+
+
+
 // Backup the CM using non-interactive, 'MODE_GENERAL' and by overriding specific plan settings.
 $packager = new activity_packager($cm, $USER->id);
-$packager->override_task_setting('setting_root_users', 0);
-$packager->override_task_setting('setting_root_blocks', 0);
+$packager->override_task_setting( 'setting_root_anonymize', 1);
+$packager->override_task_setting( 'setting_root_users', 0);
+$packager->override_task_setting( 'setting_root_role_assignments', 0);
+$packager->override_task_setting( 'setting_root_blocks', 0);
+$packager->override_task_setting( 'setting_root_comments', 0);
+$packager->override_task_setting( 'setting_root_badges', 0);
+$packager->override_task_setting( 'setting_root_userscompletion', 0);
+$packager->override_task_setting( 'setting_root_logs', 0);
+$packager->override_task_setting( 'setting_root_grade_histories', 0);
+$packager->override_task_setting( 'setting_root_groups', 0);
+
 [$activity, $fileinfo] = $packager->package();
 
 // Quick and dirty hack to support file download without implementing _pluginfile callback.
