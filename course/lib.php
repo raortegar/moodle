@@ -1850,6 +1850,24 @@ function course_get_cm_edit_actions(cm_info $mod, $indent = -1, $sr = null) {
         );
     }
 
+    // Admin tools can extend the action menu.
+    $functionname = 'extend_action_menu';
+    $plugins = get_plugin_list_with_function('tool', $functionname);
+    foreach ($plugins as $plugin => $pluginfn) {
+        $customactions = component_callback($plugin, $functionname, [$mod, $indent, $sr]);
+
+        if (!is_array($customactions)) {
+            throw new \coding_exception("$functionname must return an array");
+        }
+
+        foreach ($customactions as $key => $value) {
+            if (!is_object($value) || get_class($value) != action_menu_link_secondary::class) {
+                throw new \coding_exception('Object type must be action_menu_link_secondary');
+            }
+            $actions[$plugin . '_' . $key] = $value;
+        }
+    }
+
     // Delete.
     if ($hasmanageactivities) {
         $actions['delete'] = new action_menu_link_secondary(
