@@ -162,18 +162,26 @@ class activity_packager {
             throw new \moodle_exception('Failed to package activity (invalid file).');
         }
 
+        // TODO: needs to be changed
+        // This should be an id representing the item within tool_moodlenet.
+        // It's just hacked here, so we reuse the same id for each activity.
+        $id = $this->cminfo->id;
+
+
         // Create the location we want to copy this file to.
         $fr = array(
             'contextid' => \context_course::instance($this->cminfo->course)->id,
             'component' => 'core',
             'filearea' => 'moodlenet_activity',
-            'itemid' => $this->cminfo->id,
+            'itemid' => $id,
             'timemodified' => time()
         );
 
         // Prepare the file array
         $fs = get_file_storage();
 
+        // TODO: This is only for testing
+        // Only for testing: Purge any area files for this component_filearea_itemid.
         // The script should generate a new backup file each time it is run.
         $fs->delete_area_files($fr['contextid'], $fr['component'], $fr['filearea'], $fr['itemid']);
 
