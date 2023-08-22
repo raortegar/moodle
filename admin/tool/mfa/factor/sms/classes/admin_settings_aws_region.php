@@ -17,13 +17,13 @@
 /**
  * Admin setting for AWS regions.
  *
- * @package    local_aws
+ * @package    factor_sms
  * @author     Dmitrii Metelkin <dmitriim@catalyst-au.net>
  * @copyright  2020 Catalyst IT
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace local_aws;
+ namespace factor_sms;
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -32,7 +32,7 @@ require_once($CFG->dirroot . '/lib/adminlib.php');
 /**
  * Admin setting for a list of AWS regions.
  *
- * @package    local_aws
+ * @package    factor_sms
  * @copyright  2020 Catalyst IT
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -52,7 +52,7 @@ class admin_settings_aws_region extends \admin_setting_configtext {
 
         $options = [];
 
-        $all = require($CFG->dirroot . '/local/aws/sdk/Aws/data/endpoints.json.php');
+        $all = require($CFG->dirroot . '/lib/aws-sdk/src/data/endpoints.json.php');
         $ends = $all['partitions'][0]['regions'];
         if ($ends) {
             foreach ($ends as $key => $value) {

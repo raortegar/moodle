@@ -25,8 +25,9 @@
 
 $string['action:revoke'] = 'Revoke mobile phone number';
 $string['addnumber'] = 'Enter mobile phone number';
-$string['awssdkrequired'] = 'The local_aws plugin leveraging the AWS SDK is required to use this factor. Please install local_aws.';
+$string['clientnotfound'] = 'AWS Service client not found. Client must be fully qualified classname e.g. \Aws\S3\S3Client';
 $string['event:smssent'] = 'SMS Message sent';
+$string['event:smssentdescription'] = 'The user with id {$a->userid} had a verification code sent to them via SMS <br> Information: {$a->debuginfo}';
 $string['info'] = '<p>Setup a mobile phone number to receive SMS one-time security codes on.</p>';
 $string['loginskip'] = "I didn't receive a code";
 $string['loginsubmit'] = 'Verify code';

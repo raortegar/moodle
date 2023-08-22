@@ -17,6 +17,7 @@
 namespace factor_sms;
 
 use moodle_url;
+use stdClass;
 use tool_mfa\local\factor\object_factor_base;
 
 /**
@@ -36,7 +37,7 @@ class factor extends object_factor_base {
      * @param \MoodleQuickForm $mform
      * @return object $mform
      */
-    public function login_form_definition($mform) {
+    public function login_form_definition(\MoodleQuickForm $mform): \MoodleQuickForm {
         $mform->addElement(new \tool_mfa\local\form\verification_field());
         $mform->setType('verificationcode', PARAM_ALPHANUM);
         return $mform;
@@ -48,7 +49,7 @@ class factor extends object_factor_base {
      * @param \MoodleQuickForm $mform Form to inject global elements into.
      * @return object $mform
      */
-    public function login_form_definition_after_data($mform) {
+    public function login_form_definition_after_data(\MoodleQuickForm $mform): \MoodleQuickForm {
         $instanceid = $this->generate_and_sms_code();
         $mform = $this->add_redacted_sent_message($mform, $instanceid);
         // Disable the form check prompt.
@@ -62,7 +63,7 @@ class factor extends object_factor_base {
      * @param array $data
      * @return array
      */
-    public function login_form_validation($data) {
+    public function login_form_validation(array $data): array {
         $return = [];
 
         if (!$this->check_verification_code($data['verificationcode'])) {
@@ -74,8 +75,10 @@ class factor extends object_factor_base {
 
     /**
      * Gets the string for setup button on preferences page.
+     *
+     * @return string
      */
-    public function get_setup_string() {
+    public function get_setup_string(): string {
         return get_string('setupfactor', 'factor_sms');
     }
 
@@ -85,7 +88,7 @@ class factor extends object_factor_base {
      * @param \MoodleQuickForm $mform
      * @return object $mform
      */
-    public function setup_factor_form_definition($mform) {
+    public function setup_factor_form_definition(\MoodleQuickForm $mform): \MoodleQuickForm {
         global $SESSION, $USER, $OUTPUT;
 
         $mform->addElement('html', $OUTPUT->heading(get_string('setupfactor', 'factor_sms'), 2));
@@ -104,6 +107,8 @@ class factor extends object_factor_base {
             $mform->setType('phonenumber', PARAM_TEXT);
             $mform->addElement('html', \html_writer::tag('p', get_string('phonehelp', 'factor_sms')));
         }
+
+        return $mform;
     }
 
     /**
@@ -112,7 +117,7 @@ class factor extends object_factor_base {
      * @param \MoodleQuickForm $mform
      * @return object $mform
      */
-    public function setup_factor_form_definition_after_data($mform) {
+    public function setup_factor_form_definition_after_data(\MoodleQuickForm $mform): \MoodleQuickForm {
         global $SESSION, $USER;
 
         // Nothing if they dont have a number added.
@@ -141,6 +146,8 @@ class factor extends object_factor_base {
 
         // Disable the form check prompt.
         $mform->disable_form_change_checker();
+
+        return $mform;
     }
 
     /**
@@ -149,7 +156,7 @@ class factor extends object_factor_base {
      * @param array $data
      * @return array
      */
-    public function setup_factor_form_validation($data) {
+    public function setup_factor_form_validation(array $data): array {
         global $SESSION, $USER;
 
         // No validation on raw number.
@@ -169,10 +176,10 @@ class factor extends object_factor_base {
     /**
      * Adds an instance of the factor for a user, from form data.
      *
-     * @param array $data
+     * @param stdClass $data
      * @return stdClass the factor record, or null.
      */
-    public function setup_user_factor($data) {
+    public function setup_user_factor(stdClass $data): ?stdClass {
         global $DB, $SESSION, $USER;
 
         // Handle phone number submission.
@@ -224,11 +231,11 @@ class factor extends object_factor_base {
     /**
      * Adds a redacted sent message to the mform with the users number.
      *
-     * @param stdClass $mform the form to modify.
+     * @param \MoodleQuickForm $mform the form to modify.
      * @param int|null $instanceid the instance to take the number from.
      * @param string|null $number the number to display if no instance given.
      */
-    private function add_redacted_sent_message($mform, $instanceid = null, $number = null) {
+    private function add_redacted_sent_message(\MoodleQuickForm $mform, ?int $instanceid = null, ?string $number = null) {
         global $DB, $USER;
 
         if (!empty($instanceid)) {
@@ -249,7 +256,7 @@ class factor extends object_factor_base {
      * @param stdClass $user the user to check against.
      * @return array
      */
-    public function get_all_user_factors($user) {
+    public function get_all_user_factors(stdClass $user): array {
         global $DB;
 
         $sql = 'SELECT *
@@ -265,9 +272,10 @@ class factor extends object_factor_base {
     /**
      * SMS Factor implementation.
      *
+     * @return bool
      * {@inheritDoc}
      */
-    public function is_enabled() {
+    public function is_enabled(): bool {
         if (empty(get_config('factor_sms', 'gateway'))) {
             return false;
         }
@@ -282,27 +290,30 @@ class factor extends object_factor_base {
     /**
      * SMS Factor implementation.
      *
+     * @return bool
      * {@inheritDoc}
      */
-    public function has_input() {
+    public function has_input(): bool {
         return true;
     }
 
     /**
      * SMS Factor implementation.
      *
+     * @return bool
      * {@inheritDoc}
      */
-    public function has_setup() {
+    public function has_setup(): bool {
         return true;
     }
 
     /**
      * SMS Factor implementation
      *
+     * @return bool
      * {@inheritDoc}
      */
-    public function show_setup_buttons() {
+    public function show_setup_buttons(): bool {
         global $DB, $USER;
         // If there is already a factor setup, don't allow multiple (for now).
         $sql = 'SELECT *
@@ -319,9 +330,10 @@ class factor extends object_factor_base {
     /**
      * SMS Factor implementation.
      *
+     * @return bool
      * {@inheritDoc}
      */
-    public function has_revoke() {
+    public function has_revoke(): bool {
         return true;
     }
 
@@ -330,7 +342,7 @@ class factor extends object_factor_base {
      *
      * @return int the instance ID being used.
      */
-    private function generate_and_sms_code() {
+    private function generate_and_sms_code(): int {
         global $DB, $USER;
 
         $duration = get_config('factor_sms', 'duration');
@@ -352,7 +364,7 @@ class factor extends object_factor_base {
      * @param int|null $phonenumber the phonenumber to send the verification code to.
      * @return void
      */
-    private function sms_verification_code($secret, $phonenumber) {
+    private function sms_verification_code(int $secret, ?int $phonenumber): void {
         global $CFG, $SITE;
 
         // Here we should get the information, then construct the message.
@@ -377,7 +389,7 @@ class factor extends object_factor_base {
      * @param string $enteredcode
      * @return bool
      */
-    private function check_verification_code($enteredcode) {
+    private function check_verification_code(string $enteredcode): bool {
         $state = $this->secretmanager->validate_secret($enteredcode);
         if ($state === \tool_mfa\local\secret_manager::VALID) {
             return true;
@@ -390,7 +402,7 @@ class factor extends object_factor_base {
      *
      * @param \stdClass $user
      */
-    public function possible_states($user) {
+    public function possible_states(\stdClass $user): array {
         return [
             \tool_mfa\plugininfo\factor::STATE_PASS,
             \tool_mfa\plugininfo\factor::STATE_NEUTRAL,
