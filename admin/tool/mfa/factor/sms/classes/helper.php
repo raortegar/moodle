@@ -57,8 +57,8 @@ class helper {
     /**
      * Redact the phone number for displaying on screen.
      *
-     * @param string $phonenumber the phone number
-     * @return string the redacted phone number
+     * @param string $phonenumber the phone number.
+     * @return string the redacted phone number.
      */
     public static function redact_phonenumber(string $phonenumber): string {
         // Create partial num for display.

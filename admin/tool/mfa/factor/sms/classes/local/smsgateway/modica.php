@@ -49,6 +49,7 @@ class modica implements gateway_interface {
         // Transform the phone number to international standard.
         $phonenumber = \factor_sms\helper::format_number($phonenumber);
 
+        // Send an (outbound) MT message to a single destination.
         // https://confluence.modicagroup.com/display/DC/Mobile+Gateway+REST+API#MobileGatewayRESTAPI-Sendingtoasingledestination.
         $json = json_encode(
             [
@@ -87,7 +88,7 @@ class modica implements gateway_interface {
      * @param \admin_settingpage $settings
      * @return void
      */
-    public static function add_settings($settings) {
+    public static function add_settings(\admin_settingpage $settings): void {
         $settings->add(new \admin_setting_configtext('factor_sms/modica_url',
             get_string('settings:modica:url', 'factor_sms'),
             get_string('settings:modica:url_help', 'factor_sms'),
