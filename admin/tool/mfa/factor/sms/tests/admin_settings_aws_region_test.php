@@ -15,24 +15,24 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * local_aws unit tests.
+ * factor_sms unit tests.
  *
- * @package   local_aws
+ * @package   factor_sms
  * @author    Mikhail Golenkov <mikhailgolenkov@catalyst-au.net>
  * @copyright 2020 Catalyst IT
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-namespace local_aws;
+namespace factor_sms;
 
 /**
  * Testcase for the list of AWS regions admin setting.
  *
- * @package    local_aws
+ * @package    factor_sms
  * @author     Mikhail Golenkov <mikhailgolenkov@catalyst-au.net>
  * @copyright  2020 Catalyst IT
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- * @covers     \local_aws\admin_settings_aws_region
+ * @covers     \admin_settings_aws_region_test
  */
 class admin_settings_aws_region_test extends \advanced_testcase {
 
@@ -56,7 +56,8 @@ class admin_settings_aws_region_test extends \advanced_testcase {
         $this->assertTrue(strpos($html, 'Test visible name') !== false);
         $this->assertTrue(strpos($html, 'Test description') !== false);
         $this->assertTrue(strpos($html, 'Default: Test default setting') !== false);
-        $this->assertTrue(strpos($html, '<input type="text" list="s__test_aws_region" name="s__test_aws_region" value=""') !== false);
+        $this->assertTrue(strpos($html,
+            '<input type="text" list="s__test_aws_region" name="s__test_aws_region" value=""') !== false);
         $this->assertTrue(strpos($html, '<datalist id="s__test_aws_region">') !== false);
         $this->assertTrue(strpos($html, '<option value="') !== false);
     }
