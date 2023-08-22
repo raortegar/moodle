@@ -118,6 +118,7 @@ class core_component {
         'GuzzleHttp' => 'lib/guzzlehttp/guzzle/src',
         'Kevinrob\\GuzzleCache' => 'lib/guzzlehttp/kevinrob/guzzlecache/src',
         'Aws' => 'lib/aws-sdk/src',
+        'JmesPath' => 'lib/jmespath/src',
     );
 
     /**
