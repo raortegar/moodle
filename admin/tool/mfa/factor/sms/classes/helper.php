@@ -38,12 +38,12 @@ class helper {
         $phonenumber = preg_replace('/[ \(\)-]/', '', $phonenumber);
 
         // Number is already in international format. Do nothing.
-        if (strpos($phonenumber, '+') === 0) {
+        if (str_starts_with ($phonenumber, '+')) {
             return $phonenumber;
         }
 
         // Strip leading 0 if found.
-        if (strpos($phonenumber, '0') === 0) {
+        if (str_starts_with ($phonenumber, '0')) {
             $phonenumber = substr($phonenumber, 1);
         }
 
@@ -57,8 +57,8 @@ class helper {
     /**
      * Redact the phone number for displaying on screen.
      *
-     * @param string $phonenumber the phone number
-     * @return string the redacted phone number
+     * @param string $phonenumber the phone number.
+     * @return string the redacted phone number.
      */
     public static function redact_phonenumber(string $phonenumber): string {
         // Create partial num for display.
