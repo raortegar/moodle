@@ -65,7 +65,7 @@ interface object_factor {
      * Defines setup_factor form definition page for particular factor.
      *
      * @param \MoodleQuickForm $mform
-     * @return object $mform
+     * @return \MoodleQuickForm $mform
      * @throws \coding_exception
      */
     public function setup_factor_form_definition(\MoodleQuickForm $mform): \MoodleQuickForm;
@@ -74,7 +74,7 @@ interface object_factor {
      * Defines setup_factor form definition page after form data has been set.
      *
      * @param \MoodleQuickForm $mform
-     * @return object $mform
+     * @return \MoodleQuickForm $mform
      * @throws \coding_exception
      */
     public function setup_factor_form_definition_after_data(\MoodleQuickForm $mform): \MoodleQuickForm;
@@ -92,7 +92,7 @@ interface object_factor {
      * Defines login form definition page for particular factor.
      *
      * @param \MoodleQuickForm $mform
-     * @return object $mform
+     * @return \MoodleQuickForm $mform
      * @throws \coding_exception
      */
     public function login_form_definition(\MoodleQuickForm $mform): \MoodleQuickForm;
@@ -101,7 +101,7 @@ interface object_factor {
      * Defines login form definition page after form data has been set.
      *
      * @param \MoodleQuickForm $mform
-     * @return object $mform
+     * @return \MoodleQuickForm $mform
      * @throws \coding_exception
      */
     public function login_form_definition_after_data(\MoodleQuickForm $mform): \MoodleQuickForm;

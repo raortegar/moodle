@@ -21,7 +21,7 @@ use stdClass;
 use tool_mfa\local\factor\object_factor_base;
 
 /**
- * SMS Factor class.
+ * SMS Factor implementation.
  *
  * @package     factor_sms
  * @subpackage  tool_mfa
@@ -32,10 +32,10 @@ use tool_mfa\local\factor\object_factor_base;
 class factor extends object_factor_base {
 
     /**
-     * SMS Factor implementation.
+     * Defines login form definition page for SMS Factor.
      *
      * @param \MoodleQuickForm $mform
-     * @return object $mform
+     * @return \MoodleQuickForm $mform
      */
     public function login_form_definition(\MoodleQuickForm $mform): \MoodleQuickForm {
         $mform->addElement(new \tool_mfa\local\form\verification_field());
@@ -44,10 +44,10 @@ class factor extends object_factor_base {
     }
 
     /**
-     * SMS Factor implementation.
+     * Defines login form definition page after form data has been set.
      *
      * @param \MoodleQuickForm $mform Form to inject global elements into.
-     * @return object $mform
+     * @return \MoodleQuickForm $mform
      */
     public function login_form_definition_after_data(\MoodleQuickForm $mform): \MoodleQuickForm {
         $instanceid = $this->generate_and_sms_code();
@@ -58,7 +58,7 @@ class factor extends object_factor_base {
     }
 
     /**
-     * SMS Factor implementation.
+     * Implements login form validation for SMS Factor.
      *
      * @param array $data
      * @return array
@@ -83,10 +83,10 @@ class factor extends object_factor_base {
     }
 
     /**
-     * SMS Factor implementation.
+     * Defines setup_factor form definition page for SMS Factor.
      *
      * @param \MoodleQuickForm $mform
-     * @return object $mform
+     * @return \MoodleQuickForm $mform
      */
     public function setup_factor_form_definition(\MoodleQuickForm $mform): \MoodleQuickForm {
         global $SESSION, $USER, $OUTPUT;
@@ -112,10 +112,10 @@ class factor extends object_factor_base {
     }
 
     /**
-     * SMS Factor implementation.
+     * Defines setup_factor form definition page after form data has been set.
      *
      * @param \MoodleQuickForm $mform
-     * @return object $mform
+     * @return \MoodleQuickForm $mform
      */
     public function setup_factor_form_definition_after_data(\MoodleQuickForm $mform): \MoodleQuickForm {
         global $SESSION, $USER;
@@ -129,20 +129,16 @@ class factor extends object_factor_base {
         $mform->setType('verificationcode', PARAM_ALPHANUM);
 
         // Decide on number from session or profile.
-        if (!empty($SESSION->tool_mfa_sms_number)) {
-            $number = $SESSION->tool_mfa_sms_number;
-        } else {
-            $number = $USER->phone2;
-        }
+        $number = !empty($SESSION->tool_mfa_sms_number) ? $SESSION->tool_mfa_sms_number : $number = $USER->phone2;
 
         $duration = get_config('factor_sms', 'duration');
         $code = $this->secretmanager->create_secret($duration, true);
         if (!empty($code)) {
             $this->sms_verification_code($code, $number);
-        }
 
-        // Tell users it was sent.
-        $mform = $this->add_redacted_sent_message($mform, null, $number);
+            // Tell users it was sent.
+            $mform = $this->add_redacted_sent_message($mform, null, $number);
+        }
 
         // Disable the form check prompt.
         $mform->disable_form_change_checker();
@@ -151,7 +147,7 @@ class factor extends object_factor_base {
     }
 
     /**
-     * SMS Factor implementation.
+     * Returns an array of errors, where array key = field id and array value = error text.
      *
      * @param array $data
      * @return array
@@ -177,7 +173,7 @@ class factor extends object_factor_base {
      * Adds an instance of the factor for a user, from form data.
      *
      * @param stdClass $data
-     * @return stdClass the factor record, or null.
+     * @return stdClass|null the factor record, or null.
      */
     public function setup_user_factor(stdClass $data): ?stdClass {
         global $DB, $SESSION, $USER;
@@ -207,15 +203,16 @@ class factor extends object_factor_base {
             return null;
         }
 
+        $time = time();
         $row = new \stdClass();
         $row->userid = $USER->id;
         $row->factor = $this->name;
         $row->secret = '';
         $row->label = $label;
-        $row->timecreated = time();
+        $row->timecreated = $time;
         $row->createdfromip = $USER->lastip;
-        $row->timemodified = time();
-        $row->lastverified = time();
+        $row->timemodified = $time;
+        $row->lastverified = $time;
         $row->revoked = 0;
 
         $id = $DB->insert_record('tool_mfa', $row);
@@ -251,7 +248,7 @@ class factor extends object_factor_base {
     }
 
     /**
-     * SMS Factor implementation.
+     * Returns an array of all user factors of given type
      *
      * @param stdClass $user the user to check against.
      * @return array
@@ -270,10 +267,9 @@ class factor extends object_factor_base {
     }
 
     /**
-     * SMS Factor implementation.
+     * Returns the information about factor availability
      *
      * @return bool
-     * {@inheritDoc}
      */
     public function is_enabled(): bool {
         if (empty(get_config('factor_sms', 'gateway'))) {
@@ -288,50 +284,43 @@ class factor extends object_factor_base {
     }
 
     /**
-     * SMS Factor implementation.
+     * Decides if a factor requires input from the user to verify.
      *
      * @return bool
-     * {@inheritDoc}
      */
     public function has_input(): bool {
         return true;
     }
 
     /**
-     * SMS Factor implementation.
+     * Decides if factor needs to be setup by user and has setup_form.
      *
      * @return bool
-     * {@inheritDoc}
      */
     public function has_setup(): bool {
         return true;
     }
 
     /**
-     * SMS Factor implementation
+     * Decides if the setup buttons should be shown on the preferences page.
      *
      * @return bool
-     * {@inheritDoc}
      */
     public function show_setup_buttons(): bool {
         global $DB, $USER;
-        // If there is already a factor setup, don't allow multiple (for now).
-        $sql = 'SELECT *
-                  FROM {tool_mfa}
-                 WHERE userid = ?
-                   AND factor = ?
-                   AND secret = ?
-                   AND revoked = 0';
 
-        $record = $DB->get_record_sql($sql, [$USER->id, $this->name, '']);
+        // If there is already a factor setup, don't allow multiple (for now).
+        $record = $DB->get_record('tool_mfa',
+            ['userid' => $USER->id, 'factor' => $this->name, 'secret' => '', 'revoked' => 0]);
+
         return !empty($record) ? false : true;
     }
 
     /**
-     * SMS Factor implementation.
+     * Returns true if factor class has factor records that might be revoked.
+     * It means that user can revoke factor record from their profile.
      *
      * @return bool
-     * {@inheritDoc}
      */
     public function has_revoke(): bool {
         return true;
@@ -361,10 +350,10 @@ class factor extends object_factor_base {
      * This function sends an SMS code to the user based on the phonenumber provided.
      *
      * @param int $secret the secret to send.
-     * @param int|null $phonenumber the phonenumber to send the verification code to.
+     * @param string|null $phonenumber the phonenumber to send the verification code to.
      * @return void
      */
-    private function sms_verification_code(int $secret, ?int $phonenumber): void {
+    private function sms_verification_code(int $secret, ?string $phonenumber): void {
         global $CFG, $SITE;
 
         // Here we should get the information, then construct the message.
@@ -398,7 +387,7 @@ class factor extends object_factor_base {
     }
 
     /**
-     * SMS factor implementation.
+     * Returns all possible states for a user.
      *
      * @param \stdClass $user
      */
