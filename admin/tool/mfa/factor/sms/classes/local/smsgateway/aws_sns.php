@@ -76,16 +76,16 @@ class aws_sns implements gateway_interface {
         // We have to truncate the senderID to 11 chars.
         $senderid = substr($senderid, 0, 11);
 
-        // These messages need to be transactional.
-        $client->SetSMSAttributes([
-            'attributes' => [
-                'DefaultSMSType' => 'Transactional',
-                'DefaultSenderID' => $senderid,
-            ],
-        ]);
-
-        // Actually send the message.
         try {
+            // These messages need to be transactional.
+            $client->SetSMSAttributes([
+                'attributes' => [
+                    'DefaultSMSType' => 'Transactional',
+                    'DefaultSenderID' => $senderid,
+                ],
+            ]);
+
+            // Actually send the message.
             $result = $client->publish([
                 'Message' => $messagecontent,
                 'PhoneNumber' => $phonenumber,
@@ -106,7 +106,7 @@ class aws_sns implements gateway_interface {
 
             return true;
         } catch (\Exception $e) {
-            return false;
+            throw new \moodle_exception('serverconnection');
         }
     }
 
@@ -117,7 +117,7 @@ class aws_sns implements gateway_interface {
      * @return void
      */
     public static function add_settings(\admin_settingpage $settings): void {
-        global $CFG, $OUTPUT;
+        global $CFG;
 
         require_once($CFG->dirroot . '/admin/tool/mfa/factor/sms/classes/admin_settings_aws_region.php');
         $settings->add(new \admin_setting_configcheckbox('factor_sms/usecredchain',
