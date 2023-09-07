@@ -38,12 +38,12 @@ class helper {
         $phonenumber = preg_replace('/[ \(\)-]/', '', $phonenumber);
 
         // Number is already in international format. Do nothing.
-        if (strpos($phonenumber, '+') === 0) {
+        if (str_starts_with ($phonenumber, '+')) {
             return $phonenumber;
         }
 
         // Strip leading 0 if found.
-        if (strpos($phonenumber, '0') === 0) {
+        if (str_starts_with ($phonenumber, '0')) {
             $phonenumber = substr($phonenumber, 1);
         }
 
