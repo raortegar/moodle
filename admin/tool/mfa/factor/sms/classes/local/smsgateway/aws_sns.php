@@ -106,7 +106,7 @@ class aws_sns implements gateway_interface {
 
             return true;
         } catch (\Exception $e) {
-            throw new \moodle_exception('serverconnection');
+            throw new \moodle_exception('errorawsconection', 'factor_sms');
         }
     }
 
