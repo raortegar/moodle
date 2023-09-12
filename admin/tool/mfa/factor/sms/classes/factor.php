@@ -51,7 +51,8 @@ class factor extends object_factor_base {
      */
     public function login_form_definition_after_data(\MoodleQuickForm $mform): \MoodleQuickForm {
         $instanceid = $this->generate_and_sms_code();
-        $mform = $this->add_redacted_sent_message($mform, $instanceid);
+        $mform = $this->add_successful_message($mform, $instanceid);
+
         // Disable the form check prompt.
         $mform->disable_form_change_checker();
         return $mform;
@@ -89,11 +90,11 @@ class factor extends object_factor_base {
      * @return \MoodleQuickForm $mform
      */
     public function setup_factor_form_definition(\MoodleQuickForm $mform): \MoodleQuickForm {
-        global $SESSION, $USER, $OUTPUT;
+        global $OUTPUT;
 
         $mform->addElement('html', $OUTPUT->heading(get_string('setupfactor', 'factor_sms'), 2));
 
-        if (empty($USER->phone2) && empty($SESSION->tool_mfa_sms_number)) {
+        if (empty($this->get_phonenumber())) {
             $mform->addElement('hidden', 'verificationcode', 0);
             $mform->setType('verificationcode', PARAM_ALPHANUM);
 
@@ -118,18 +119,14 @@ class factor extends object_factor_base {
      * @return \MoodleQuickForm $mform
      */
     public function setup_factor_form_definition_after_data(\MoodleQuickForm $mform): \MoodleQuickForm {
-        global $SESSION, $USER;
 
-        // Nothing if they dont have a number added.
-        if (empty($USER->phone2) && empty($SESSION->tool_mfa_sms_number)) {
+        $number = $this->get_phonenumber();
+        if (empty($number)) {
             return $mform;
         }
 
         $mform->addElement(new \tool_mfa\local\form\verification_field());
         $mform->setType('verificationcode', PARAM_ALPHANUM);
-
-        // Decide on number from session or profile.
-        $number = !empty($SESSION->tool_mfa_sms_number) ? $SESSION->tool_mfa_sms_number : $number = $USER->phone2;
 
         $duration = get_config('factor_sms', 'duration');
         $code = $this->secretmanager->create_secret($duration, true);
@@ -137,7 +134,7 @@ class factor extends object_factor_base {
             $this->sms_verification_code($code, $number);
 
             // Tell users it was sent.
-            $mform = $this->add_redacted_sent_message($mform, null, $number);
+            $mform = $this->add_successful_message($mform, null);
         }
 
         // Disable the form check prompt.
@@ -147,16 +144,32 @@ class factor extends object_factor_base {
     }
 
     /**
+     * Returns the phone number from the current session or from the user profile data.
+     * @return string|null
+     */
+    private function get_phonenumber (): ?string {
+        global $SESSION, $USER;
+
+        if (!empty($SESSION->tool_mfa_sms_number)) {
+            return $SESSION->tool_mfa_sms_number;
+        }
+        if (!empty($USER->phone2)) {
+            return $USER->phone2;
+        }
+
+        return null;
+    }
+
+    /**
      * Returns an array of errors, where array key = field id and array value = error text.
      *
      * @param array $data
      * @return array
      */
     public function setup_factor_form_validation(array $data): array {
-        global $SESSION, $USER;
 
         // No validation on raw number.
-        if (empty($USER->phone2) && empty($SESSION->tool_mfa_sms_number)) {
+        if (empty($this->get_phonenumber())) {
             return [];
         }
 
@@ -189,13 +202,7 @@ class factor extends object_factor_base {
             redirect($addurl);
         }
 
-        // Decide on number to use for instance.
-        if (empty($SESSION->tool_mfa_sms_number)) {
-            // This came from the profile.
-            $label = $USER->phone2;
-        } else {
-            $label = $SESSION->tool_mfa_sms_number;
-        }
+        $label = $this->get_phonenumber();
 
         // If the user somehow gets here through form resubmission.
         // We dont want two phones active.
@@ -226,24 +233,27 @@ class factor extends object_factor_base {
     }
 
     /**
-     * Adds a redacted sent message to the mform with the users number.
+     * Creates a HTML message to inform the user that an SMS message was sent to the given phone number successfully
      *
      * @param \MoodleQuickForm $mform the form to modify.
      * @param int|null $instanceid the instance to take the number from.
-     * @param string|null $number the number to display if no instance given.
      */
-    private function add_redacted_sent_message(\MoodleQuickForm $mform, ?int $instanceid = null, ?string $number = null) {
-        global $DB, $USER;
+    private function add_successful_message(\MoodleQuickForm $mform, ?int $instanceid = null) {
+        global $DB;
 
         if (!empty($instanceid)) {
             $phonenumber = $DB->get_field('tool_mfa', 'label', ['id' => $instanceid]);
         } else {
-            $phonenumber = !empty($number) ? $number : $USER->phone2;
+            $phonenumber = $this->get_phonenumber();
         }
 
-        $redacted = helper::redact_phonenumber($phonenumber);
+        if (empty($phonenumber)) {
+            $mform->addElement('html', \html_writer::tag('p', get_string('errorsmssent', 'factor_sms')));
+        } else {
+            $redacted = helper::redact_phonenumber($phonenumber);
+            $mform->addElement('html', \html_writer::tag('p', get_string('smssent', 'factor_sms', $redacted) . '<br>'));
+        }
 
-        $mform->addElement('html', \html_writer::tag('p', get_string('smssent', 'factor_sms', $redacted) . '<br>'));
         return $mform;
     }
 
@@ -329,15 +339,17 @@ class factor extends object_factor_base {
     /**
      * Generates and sms' the code for login to the user, stores codes in DB.
      *
-     * @return int the instance ID being used.
+     * @return int|null the instance ID being used.
      */
-    private function generate_and_sms_code(): int {
+    private function generate_and_sms_code(): ?int {
         global $DB, $USER;
 
         $duration = get_config('factor_sms', 'duration');
-        $secret = $this->secretmanager->create_secret($duration, false);
         $instance = $DB->get_record('tool_mfa', ['factor' => $this->name, 'userid' => $USER->id, 'revoked' => 0]);
-
+        if (empty($instance)) {
+            return null;
+        }
+        $secret = $this->secretmanager->create_secret($duration, false);
         // There is a new code that needs to be sent.
         if (!empty($secret)) {
             // Grab the singleton SMS record.
