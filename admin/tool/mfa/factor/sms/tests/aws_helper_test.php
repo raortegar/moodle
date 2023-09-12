@@ -21,7 +21,7 @@
  * @author    Peter Burnett <peterburnett@catalyst-au.net>
  * @copyright 2020 Catalyst IT
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- * @covers    \factor_sms\classes\local\aws_helper
+ * @covers    \factor_sms\local\aws_helper
  */
 
 namespace factor_sms;
