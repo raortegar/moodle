@@ -31,6 +31,9 @@ use tool_mfa\local\factor\object_factor_base;
  */
 class factor extends object_factor_base {
 
+    /** @var string Factor icon */
+    protected $icon = 'fa-message';
+
     /**
      * Defines login form definition page for SMS Factor.
      *
@@ -68,7 +71,7 @@ class factor extends object_factor_base {
         $return = [];
 
         if (!$this->check_verification_code($data['verificationcode'])) {
-            $return['verificationcode'] = get_string('wrongcode', 'factor_sms');
+            $return['verificationcode'] = get_string('error:wrongverification', 'factor_sms');
         }
 
         return $return;
@@ -233,7 +236,7 @@ class factor extends object_factor_base {
     }
 
     /**
-     * Creates a HTML message to inform the user that an SMS message was sent to the given phone number successfully
+     * Creates a HTML message to inform the user that an SMS message was sent to the given phone number successfully.
      *
      * @param \MoodleQuickForm $mform the form to modify.
      * @param int|null $instanceid the instance to take the number from.
@@ -258,7 +261,7 @@ class factor extends object_factor_base {
     }
 
     /**
-     * Returns an array of all user factors of given type
+     * Returns an array of all user factors of given type.
      *
      * @param stdClass $user the user to check against.
      * @return array
@@ -277,7 +280,7 @@ class factor extends object_factor_base {
     }
 
     /**
-     * Returns the information about factor availability
+     * Returns the information about factor availability.
      *
      * @return bool
      */
@@ -372,8 +375,6 @@ class factor extends object_factor_base {
         $url = new moodle_url($CFG->wwwroot);
         $content = [
             'fullname' => $SITE->fullname,
-            'shortname' => $SITE->shortname,
-            'supportname' => $CFG->supportname,
             'url' => $url->get_host(),
             'code' => $secret,
         ];
