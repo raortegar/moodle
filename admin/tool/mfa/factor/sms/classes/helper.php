@@ -60,7 +60,7 @@ class helper {
      * @param string $phonenumber the phone number.
      * @return string the redacted phone number.
      */
-    public static function redact_phonenumber(string $phonenumber): string {
+    public static function obfuscate_phonenumber(string $phonenumber): string {
         // Create partial num for display.
         $len = strlen($phonenumber);
         // Keep last 3 characters.

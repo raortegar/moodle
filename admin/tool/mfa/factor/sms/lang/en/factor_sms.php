@@ -28,11 +28,15 @@ $string['addnumber'] = 'Enter mobile phone number';
 $string['clientnotfound'] = 'AWS Service client not found. Client must be fully qualified classname e.g. \Aws\S3\S3Client';
 $string['errorawsconection'] = 'Error connecting to AWS server';
 $string['errorsmssent'] = 'Error sending a SMS message containing your verification code.';
+$string['error:wrongverification'] = 'Wrong code. Try again.';
 $string['event:smssent'] = 'SMS Message sent';
 $string['event:smssentdescription'] = 'The user with id {$a->userid} had a verification code sent to them via SMS <br> Information: {$a->debuginfo}';
 $string['info'] = '<p>Setup a mobile phone number to receive SMS one-time security codes on.</p>';
+$string['logindesc'] = 'We\'ve just sent an SMS containing a 6-digit code to your mobile number: {$a}.';
+$string['loginoption'] = 'Have a code sent to you mobile phone';
 $string['loginskip'] = "I didn't receive a code";
-$string['loginsubmit'] = 'Verify code';
+$string['loginsubmit'] = 'Continue';
+$string['logintitle'] = 'Enter the verification code sent to your mobile';
 $string['phonehelp'] = 'Enter your local mobile phone number, or an international phone number starting with \'+\'.';
 $string['phoneplaceholder'] = '04xx xxx xxx or +61 4xx xxx xxx';
 $string['pluginname'] = 'Mobile phone SMS';
@@ -54,9 +58,7 @@ $string['settings:duration_help'] = 'The period of time that the code is valid.'
 $string['settings:gateway'] = 'SMS Gateway';
 $string['settings:gateway_help'] = 'The SMS provider you wish to send messages via';
 $string['setupfactor'] = 'Setup mobile number';
-$string['smssent'] = 'An SMS message containing your verification code was sent to {$a}.';
 $string['smsstring'] = '{$a->code} is your {$a->fullname} one-time security code.
 
 @{$a->url} #{$a->code}';
 $string['summarycondition'] = 'Using an SMS one-time security code';
-$string['wrongcode'] = 'Invalid security code.';
