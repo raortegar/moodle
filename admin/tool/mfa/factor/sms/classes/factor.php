@@ -32,7 +32,7 @@ use tool_mfa\local\factor\object_factor_base;
 class factor extends object_factor_base {
 
     /** @var string Factor icon */
-    protected $icon = 'fa-message';
+    protected $icon = 'fa-commenting-o';
 
     /**
      * Defines login form definition page for SMS Factor.
@@ -53,8 +53,7 @@ class factor extends object_factor_base {
      * @return \MoodleQuickForm $mform
      */
     public function login_form_definition_after_data(\MoodleQuickForm $mform): \MoodleQuickForm {
-        $instanceid = $this->generate_and_sms_code();
-        $mform = $this->add_successful_message($mform, $instanceid);
+        $this->generate_and_sms_code();
 
         // Disable the form check prompt.
         $mform->disable_form_change_checker();
@@ -123,8 +122,8 @@ class factor extends object_factor_base {
      */
     public function setup_factor_form_definition_after_data(\MoodleQuickForm $mform): \MoodleQuickForm {
 
-        $number = $this->get_phonenumber();
-        if (empty($number)) {
+        $phonenumber = $this->get_phonenumber();
+        if (empty($phonenumber)) {
             return $mform;
         }
 
@@ -134,10 +133,12 @@ class factor extends object_factor_base {
         $duration = get_config('factor_sms', 'duration');
         $code = $this->secretmanager->create_secret($duration, true);
         if (!empty($code)) {
-            $this->sms_verification_code($code, $number);
+            $this->sms_verification_code($code, $phonenumber);
 
             // Tell users it was sent.
-            $mform = $this->add_successful_message($mform, null);
+            $phonenumber = helper::obfuscate_phonenumber($phonenumber);
+            $message = get_string('logindesc', 'factor_' . $this->name, $phonenumber);
+            $mform->addElement('html', \html_writer::tag('p', $message . '<br>'));
         }
 
         // Disable the form check prompt.
@@ -151,13 +152,17 @@ class factor extends object_factor_base {
      * @return string|null
      */
     private function get_phonenumber (): ?string {
-        global $SESSION, $USER;
+        global $SESSION, $USER, $DB;
 
         if (!empty($SESSION->tool_mfa_sms_number)) {
             return $SESSION->tool_mfa_sms_number;
         }
         if (!empty($USER->phone2)) {
             return $USER->phone2;
+        }
+        $instance = $DB->get_record('tool_mfa', ['factor' => $this->name, 'userid' => $USER->id, 'revoked' => 0]);
+        if (!empty($instance)) {
+            return $DB->get_field('tool_mfa', 'label', ['id' => $instance->id]);
         }
 
         return null;
@@ -179,7 +184,7 @@ class factor extends object_factor_base {
         $errors = [];
         $result = $this->secretmanager->validate_secret($data['verificationcode']);
         if ($result !== $this->secretmanager::VALID) {
-            $errors['verificationcode'] = get_string('wrongcode', 'factor_sms');
+            $errors['verificationcode'] = get_string('error:wrongverification', 'factor_sms');
         }
 
         return $errors;
@@ -196,7 +201,7 @@ class factor extends object_factor_base {
 
         // Handle phone number submission.
         if (empty($USER->phone2) && empty($SESSION->tool_mfa_sms_number)) {
-            $SESSION->tool_mfa_sms_number = $data->phonenumber;
+            $SESSION->tool_mfa_sms_number = !empty($data->phonenumber) ? $data->phonenumber : '';
 
             $addurl = new \moodle_url('/admin/tool/mfa/action.php', [
                 'action' => 'setup',
@@ -233,31 +238,6 @@ class factor extends object_factor_base {
         unset($SESSION->tool_mfa_sms_number);
 
         return $record;
-    }
-
-    /**
-     * Creates a HTML message to inform the user that an SMS message was sent to the given phone number successfully.
-     *
-     * @param \MoodleQuickForm $mform the form to modify.
-     * @param int|null $instanceid the instance to take the number from.
-     */
-    private function add_successful_message(\MoodleQuickForm $mform, ?int $instanceid = null) {
-        global $DB;
-
-        if (!empty($instanceid)) {
-            $phonenumber = $DB->get_field('tool_mfa', 'label', ['id' => $instanceid]);
-        } else {
-            $phonenumber = $this->get_phonenumber();
-        }
-
-        if (empty($phonenumber)) {
-            $mform->addElement('html', \html_writer::tag('p', get_string('errorsmssent', 'factor_sms')));
-        } else {
-            $redacted = helper::redact_phonenumber($phonenumber);
-            $mform->addElement('html', \html_writer::tag('p', get_string('smssent', 'factor_sms', $redacted) . '<br>'));
-        }
-
-        return $mform;
     }
 
     /**
@@ -411,5 +391,23 @@ class factor extends object_factor_base {
             \tool_mfa\plugininfo\factor::STATE_FAIL,
             \tool_mfa\plugininfo\factor::STATE_UNKNOWN,
         ];
+    }
+
+    /**
+     * Get the login description associated with this factor.
+     * Override for factors that have a user input.
+     *
+     * @return string The login option.
+     */
+    public function get_login_desc(): string {
+
+        $phonenumber = $this->get_phonenumber();
+
+        if (empty($phonenumber)) {
+            return get_string('errorsmssent', 'factor_sms');
+        } else {
+            $phonenumber = helper::obfuscate_phonenumber($phonenumber);
+            return get_string('logindesc', 'factor_' . $this->name, $phonenumber);
+        }
     }
 }
