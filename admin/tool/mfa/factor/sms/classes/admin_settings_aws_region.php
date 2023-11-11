@@ -46,13 +46,11 @@ class admin_settings_aws_region extends \admin_setting_configtext {
      * @return string
      */
     public function output_html($data, $query='') {
-        global $CFG;
+        global $CFG, $OUTPUT;
 
         $default = $this->get_defaultsetting();
-
         $options = [];
-
-        $all = require($CFG->dirroot . '/lib/aws-sdk/src/data/endpoints.json.php');
+        $all = require_once($CFG->dirroot . '/lib/aws-sdk/src/data/endpoints.json.php');
         $ends = $all['partitions'][0]['regions'];
         if ($ends) {
             foreach ($ends as $key => $value) {
@@ -63,25 +61,15 @@ class admin_settings_aws_region extends \admin_setting_configtext {
             }
         }
 
-        $inputparams = [
-            'type' => 'text',
+        $context = [
             'list' => $this->get_full_name(),
             'name' => $this->get_full_name(),
+            'id' => $this->get_id(),
             'value' => $data,
             'size' => $this->size,
-            'id' => $this->get_id(),
-            'class' => 'form-control text-ltr',
+            'options' => $options,
         ];
-
-        $element = \html_writer::start_tag('div', ['class' => 'form-text defaultsnext']);
-        $element .= \html_writer::empty_tag('input', $inputparams);
-        $element .= \html_writer::start_tag('datalist', ['id' => $this->get_full_name()]);
-        foreach ($options as $option) {
-            $element .= \html_writer::tag('option', $option['label'], ['value' => $option['value']]);
-        }
-        $element .= \html_writer::end_tag('datalist');
-        $element .= \html_writer::end_tag('div');
-
+        $element = $OUTPUT->render_from_template('factor_sms/setting_aws_region', $context);
         return format_admin_setting($this, $this->visiblename, $element, $this->description, true, '', $default, $query);
     }
 }

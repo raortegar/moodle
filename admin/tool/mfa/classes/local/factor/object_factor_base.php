@@ -184,6 +184,17 @@ abstract class object_factor_base implements object_factor {
     }
 
     /**
+     * Setups in given factor when the form is cancelled
+     *
+     * Dummy implementation. Should be overridden in child class.
+     *
+     * @param mixed $factorid
+     * @return void
+     */
+    public function setup_factor_form_is_cancelled(mixed $factorid): void {
+    }
+
+    /**
      * Setups given factor and adds it to user's active factors list.
      * Returns true if factor has been successfully added, otherwise false.
      *

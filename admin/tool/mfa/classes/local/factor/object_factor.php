@@ -116,6 +116,14 @@ interface object_factor {
     public function login_form_validation(array $data): array;
 
     /**
+     * Setups in given factor when the form is cancelled
+     *
+     * @param mixed $factorid
+     * @return bool|null
+     */
+    public function setup_factor_form_is_cancelled(mixed $factorid): void;
+
+    /**
      * Setups given factor and adds it to user's active factors list.
      * Returns true if factor has been successfully added, otherwise false.
      *
