@@ -15,18 +15,27 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Plugin version and other meta-data are defined here.
+ * Edit phonenumber redirect
  *
  * @package     factor_sms
- * @subpackage  tool_mfa
- * @author      Peter Burnett <peterburnett@catalyst-au.net>
- * @copyright   Catalyst IT
+ * @copyright   2023 Raquel Ortega <raquel.ortega@moodle.com>
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-defined('MOODLE_INTERNAL') || die();
+require_once(__DIR__ . '../../../../../../config.php');
 
-$plugin->version      = 2023080300;      // The current plugin version (Date: YYYYMMDDXX).
-$plugin->requires     = 2023042400.00;   // Requires this Moodle version.
-$plugin->component    = 'factor_sms';   // Full name of the plugin (used for diagnostics).
-$plugin->maturity     = MATURITY_STABLE;
+require_login(null, false);
+if (isguestuser()) {
+    throw new require_login_exception('error:isguestuser', 'tool_mfa');
+}
+
+$sesskey = optional_param('sesskey', false, PARAM_TEXT);
+require_sesskey();
+
+// Remove session phone number.
+unset($SESSION->tool_mfa_sms_number);
+
+redirect(new \moodle_url('/admin/tool/mfa/action.php', [
+    'action' => 'setup',
+    'factor' => 'sms',
+]));

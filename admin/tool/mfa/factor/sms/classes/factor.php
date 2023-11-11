@@ -103,12 +103,17 @@ class factor extends object_factor_base {
             // Add field for phone number setup.
             $mform->addElement('text', 'phonenumber', get_string('addnumber', 'factor_sms'),
                 [
-                    'placeholder' => get_string('phoneplaceholder', 'factor_sms'),
                     'autocomplete' => 'tel',
                     'inputmode' => 'tel',
                 ]);
             $mform->setType('phonenumber', PARAM_TEXT);
-            $mform->addElement('html', \html_writer::tag('p', get_string('phonehelp', 'factor_sms')));
+            $mform->addRule('phonenumber', get_string('required'), 'required', null, 'client');
+
+            // HTML to display a message about the phone number.
+            $message = \html_writer::tag('div', '', ['class' => 'col-md-3']);
+            $message .= \html_writer::tag(
+                'div', \html_writer::tag('p', get_string('phonehelp', 'factor_sms')), ['class' => 'col-md-9']);
+            $mform->addElement('html', \html_writer::tag('div', $message, ['class' => 'row']));
         }
 
         return $mform;
@@ -121,25 +126,34 @@ class factor extends object_factor_base {
      * @return \MoodleQuickForm $mform
      */
     public function setup_factor_form_definition_after_data(\MoodleQuickForm $mform): \MoodleQuickForm {
+        global $OUTPUT;
 
         $phonenumber = $this->get_phonenumber();
         if (empty($phonenumber)) {
             return $mform;
         }
 
-        $mform->addElement(new \tool_mfa\local\form\verification_field());
-        $mform->setType('verificationcode', PARAM_ALPHANUM);
-
+        $message = '';
         $duration = get_config('factor_sms', 'duration');
         $code = $this->secretmanager->create_secret($duration, true);
         if (!empty($code)) {
             $this->sms_verification_code($code, $phonenumber);
-
-            // Tell users it was sent.
-            $phonenumber = helper::obfuscate_phonenumber($phonenumber);
-            $message = get_string('logindesc', 'factor_' . $this->name, $phonenumber);
-            $mform->addElement('html', \html_writer::tag('p', $message . '<br>'));
+            $obfuscatephonenumber = helper::obfuscate_phonenumber($phonenumber);
+            $message = get_string('logindesc', 'factor_sms', '<b>' . $obfuscatephonenumber . '</b><br/>');
         }
+        $message .= get_string('backbuttoninfo', 'factor_sms');
+        $mform->addElement('html', \html_writer::tag('p', $OUTPUT->notification($message, 'success')));
+
+        $mform->addElement(new \tool_mfa\local\form\verification_field());
+        $mform->setType('verificationcode', PARAM_ALPHANUM);
+        $mform->addRule('verificationcode', get_string('required'), 'required', null, 'client');
+
+        $editphonenumber = \html_writer::link(
+            new \moodle_url('/admin/tool/mfa/factor/sms/editphonenumber.php', ['sesskey' => sesskey()]),
+            get_string('backbutton', 'factor_sms'),
+            ['class' => 'btn btn-secondary', 'type' => 'button']);
+
+        $mform->addElement('html', \html_writer::tag('div', $editphonenumber, ['class' => 'float-sm-left']));
 
         // Disable the form check prompt.
         $mform->disable_form_change_checker();
@@ -151,7 +165,7 @@ class factor extends object_factor_base {
      * Returns the phone number from the current session or from the user profile data.
      * @return string|null
      */
-    private function get_phonenumber (): ?string {
+    private function get_phonenumber(): ?string {
         global $SESSION, $USER, $DB;
 
         if (!empty($SESSION->tool_mfa_sms_number)) {
@@ -175,19 +189,32 @@ class factor extends object_factor_base {
      * @return array
      */
     public function setup_factor_form_validation(array $data): array {
-
-        // No validation on raw number.
-        if (empty($this->get_phonenumber())) {
-            return [];
-        }
-
         $errors = [];
-        $result = $this->secretmanager->validate_secret($data['verificationcode']);
-        if ($result !== $this->secretmanager::VALID) {
-            $errors['verificationcode'] = get_string('error:wrongverification', 'factor_sms');
+
+        if (!empty($data["phonenumber"]) && empty(helper::is_valid_phonenumber($data["phonenumber"]))) {
+            $errors['phonenumber'] = get_string('error:wrongphonenumber', 'factor_sms');
+
+        } else if (!empty($data["verificationcode"])) {
+            $result = $this->secretmanager->validate_secret($data['verificationcode']);
+            if ($result !== $this->secretmanager::VALID) {
+                $errors['verificationcode'] = get_string('error:wrongverification', 'factor_sms');
+            }
         }
 
         return $errors;
+    }
+
+    /**
+     * Reset values of the session data of the given factor.
+     *
+     * @param mixed $factorid
+     * @return bool|null
+     */
+    public function setup_factor_form_is_cancelled(mixed $factorid): void {
+        global $SESSION;
+        if (!empty($SESSION->tool_mfa_sms_number)) {
+            unset($SESSION->tool_mfa_sms_number);
+        }
     }
 
     /**
@@ -210,8 +237,6 @@ class factor extends object_factor_base {
             redirect($addurl);
         }
 
-        $label = $this->get_phonenumber();
-
         // If the user somehow gets here through form resubmission.
         // We dont want two phones active.
         if ($DB->record_exists('tool_mfa', ['userid' => $USER->id, 'factor' => $this->name, 'revoked' => 0])) {
@@ -219,6 +244,8 @@ class factor extends object_factor_base {
         }
 
         $time = time();
+        $label = $this->get_phonenumber();
+
         $row = new \stdClass();
         $row->userid = $USER->id;
         $row->factor = $this->name;
@@ -306,7 +333,7 @@ class factor extends object_factor_base {
         $record = $DB->get_record('tool_mfa',
             ['userid' => $USER->id, 'factor' => $this->name, 'secret' => '', 'revoked' => 0]);
 
-        return !empty($record) ? false : true;
+        return empty($record);
     }
 
     /**
@@ -372,11 +399,7 @@ class factor extends object_factor_base {
      * @return bool
      */
     private function check_verification_code(string $enteredcode): bool {
-        $state = $this->secretmanager->validate_secret($enteredcode);
-        if ($state === \tool_mfa\local\secret_manager::VALID) {
-            return true;
-        }
-        return false;
+        return ($this->secretmanager->validate_secret($enteredcode) === \tool_mfa\local\secret_manager::VALID) ? true : false;
     }
 
     /**

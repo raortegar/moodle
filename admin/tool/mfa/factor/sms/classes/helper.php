@@ -49,23 +49,38 @@ class helper {
 
         // Prepend country code.
         $countrycode = get_config('factor_sms', 'countrycode');
-        $phonenumber = '+' . $countrycode . $phonenumber;
+        $phonenumber = !empty($countrycode) ? '+' . $countrycode . $phonenumber : $phonenumber;
 
         return $phonenumber;
     }
 
     /**
      * Redact the phone number for displaying on screen.
+     * Keep the country code plus first 2 and last 2 digits
      *
      * @param string $phonenumber the phone number.
      * @return string the redacted phone number.
      */
     public static function obfuscate_phonenumber(string $phonenumber): string {
-        // Create partial num for display.
-        $len = strlen($phonenumber);
-        // Keep last 3 characters.
-        $redacted = str_repeat('x', $len - 3);
-        $redacted .= substr($phonenumber, -3);
+        if (empty($phonenumber)) {
+            return '';
+        }
+        if (str_starts_with ($phonenumber, '+')) {
+            $redacted = substr($phonenumber, 0, 4) . str_repeat('x', strlen($phonenumber) - 6) . substr($phonenumber, -2);
+        } else {
+            $redacted = substr($phonenumber, 0, 2) . str_repeat('x', strlen($phonenumber) - 4) . substr($phonenumber, -2);
+        }
         return $redacted;
+    }
+
+    /**
+     * Validate phone number with E.164 format. https://en.wikipedia.org/wiki/E.164
+     *
+     * @param string $phonenumber from the given user input
+     * @return bool
+     */
+    public static function is_valid_phonenumber(string $phonenumber) : bool {
+        $phonenumber = self::format_number($phonenumber);
+        return (preg_match("/^\+[1-9]\d{1,14}$/", $phonenumber)) ? true : false;
     }
 }
