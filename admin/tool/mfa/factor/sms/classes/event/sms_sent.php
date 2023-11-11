@@ -43,7 +43,7 @@ class sms_sent extends \core\event\base {
 
         $content = [
             'userid' => $this->other['userid'],
-            'debuginfo' => is_array($this->other['debug']) ? json_encode($this->other['debug']) : $this->other['debug']
+            'debuginfo' => is_array($this->other['debug']) ? json_encode($this->other['debug']) : $this->other['debug'],
         ];
 
         return get_string('event:smssentdescription', 'factor_sms', $content);
