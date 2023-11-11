@@ -60,7 +60,7 @@ class factor_test extends \advanced_testcase {
             ],
             'Phone number with spaces using local format without country code' => [
                 'phonenumber' => '0 123 456 789',
-                'expected' => '+123456789',
+                'expected' => '123456789',
             ],
         ];
     }
@@ -81,6 +81,41 @@ class factor_test extends \advanced_testcase {
         set_config('countrycode', $countrycode, 'factor_sms');
 
         $this->assertEquals($expected, \factor_sms\helper::format_number($phonenumber));
+    }
+
+    /**
+     * Data provider for test_is_valid__phonenumber().
+     *
+     * @return array with different phone numebr tests
+     */
+    public function is_valid_phonenumber_provider(): array {
+        return [
+            ['+919367788755', true],
+            ['8989829304', false],
+            ['+16308520397', true],
+            ['786-307-3615', false],
+            ['+14155552671', true],
+            ['+551155256325', true],
+            ['649709233', false],
+            ['+34649709233', true],
+        ];
+    }
+
+    /**
+     * Test is valid phone number in E.164 format (https://en.wikipedia.org/wiki/E.164)
+     * @covers \factor_sms\helper::is_valid_phonenumber
+     * @dataProvider is_valid_phonenumber_provider
+     *
+     * @param string $phonenumber Phone number.
+     * @param bool $valid. True if the given phone number is valid, false if is invalid
+     */
+    public function test_is_valid_phonenumber(string $phonenumber, bool $valid): void {
+        $this->resetAfterTest(true);
+        if ($valid) {
+            $this->assertTrue(\factor_sms\helper::is_valid_phonenumber($phonenumber));
+        } else {
+            $this->assertFalse(\factor_sms\helper::is_valid_phonenumber($phonenumber));
+        }
     }
 
     /**

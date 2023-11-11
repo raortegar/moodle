@@ -95,54 +95,17 @@ class factor extends object_factor_base {
         global $OUTPUT;
 
         $mform->addElement('html', $OUTPUT->heading(get_string('setupfactor', 'factor_sms'), 2));
-
-        if (empty($this->get_phonenumber())) {
-            $mform->addElement('hidden', 'verificationcode', 0);
-            $mform->setType('verificationcode', PARAM_ALPHANUM);
-
-            // Add field for phone number setup.
-            $mform->addElement('text', 'phonenumber', get_string('addnumber', 'factor_sms'),
-                [
-                    'placeholder' => get_string('phoneplaceholder', 'factor_sms'),
-                    'autocomplete' => 'tel',
-                    'inputmode' => 'tel',
-                ]);
-            $mform->setType('phonenumber', PARAM_TEXT);
-            $mform->addElement('html', \html_writer::tag('p', get_string('phonehelp', 'factor_sms')));
-        }
-
-        return $mform;
-    }
-
-    /**
-     * Defines setup_factor form definition page after form data has been set.
-     *
-     * @param \MoodleQuickForm $mform
-     * @return \MoodleQuickForm $mform
-     */
-    public function setup_factor_form_definition_after_data(\MoodleQuickForm $mform): \MoodleQuickForm {
-
-        $phonenumber = $this->get_phonenumber();
-        if (empty($phonenumber)) {
-            return $mform;
-        }
-
-        $mform->addElement(new \tool_mfa\local\form\verification_field());
+        $mform->addElement('hidden', 'verificationcode', 0);
         $mform->setType('verificationcode', PARAM_ALPHANUM);
 
-        $duration = get_config('factor_sms', 'duration');
-        $code = $this->secretmanager->create_secret($duration, true);
-        if (!empty($code)) {
-            $this->sms_verification_code($code, $phonenumber);
-
-            // Tell users it was sent.
-            $phonenumber = helper::obfuscate_phonenumber($phonenumber);
-            $message = get_string('logindesc', 'factor_' . $this->name, $phonenumber);
-            $mform->addElement('html', \html_writer::tag('p', $message . '<br>'));
-        }
-
-        // Disable the form check prompt.
-        $mform->disable_form_change_checker();
+        // Add field for phone number setup.
+        $mform->addElement('text', 'phonenumber', get_string('addnumber', 'factor_sms'),
+            [
+                'autocomplete' => 'tel',
+                'inputmode' => 'tel',
+            ]);
+        $mform->setType('phonenumber', PARAM_TEXT);
+        $mform->addElement('html', \html_writer::tag('p', get_string('phonehelp', 'factor_sms')));
 
         return $mform;
     }
@@ -151,14 +114,11 @@ class factor extends object_factor_base {
      * Returns the phone number from the current session or from the user profile data.
      * @return string|null
      */
-    private function get_phonenumber (): ?string {
+    private function get_phonenumber(): ?string {
         global $SESSION, $USER, $DB;
 
         if (!empty($SESSION->tool_mfa_sms_number)) {
             return $SESSION->tool_mfa_sms_number;
-        }
-        if (!empty($USER->phone2)) {
-            return $USER->phone2;
         }
         $instance = $DB->get_record('tool_mfa', ['factor' => $this->name, 'userid' => $USER->id, 'revoked' => 0]);
         if (!empty($instance)) {
@@ -175,12 +135,80 @@ class factor extends object_factor_base {
      * @return array
      */
     public function setup_factor_form_validation(array $data): array {
-
-        // No validation on raw number.
-        if (empty($this->get_phonenumber())) {
-            return [];
+        $errors = [];
+        if (!empty($data["phonenumber"]) && empty(helper::is_valid_phonenumber($data["phonenumber"]))) {
+            $errors['phonenumber'] = get_string('error:wrongphonenumber', 'factor_sms');
         }
 
+        return $errors;
+    }
+
+    /**
+     * Adds an instance of the factor for a user, from form data.
+     *
+     * @param stdClass $data
+     * @return stdClass|null the factor record, or null.
+     */
+    public function setup_user_factor(stdClass $data): ?stdClass {
+        global $SESSION;
+
+        if (!empty($data->phonenumber)) {
+            $SESSION->tool_mfa_sms_number = !empty($data->phonenumber) ? $data->phonenumber : '';
+            $addurl = new \moodle_url('/admin/tool/mfa/factor/sms/code_setup.php', [
+                'factor' => 'sms',
+            ]);
+            redirect($addurl);
+        } else {
+            $addurl = new \moodle_url('/admin/tool/mfa/action.php', [
+                'action' => 'setup',
+                'factor' => 'sms',
+            ]);
+            redirect($addurl);
+        }
+    }
+
+    /**
+     * Defines setup_factor form definition page for SMS Factor.
+     *
+     * @param \MoodleQuickForm $mform
+     * @param string $phonenumber
+     * @return \MoodleQuickForm $mform
+     */
+    public function code_setup_factor_form_definition(\MoodleQuickForm $mform, string $phonenumber): \MoodleQuickForm {
+        $mform->addElement(new \tool_mfa\local\form\verification_field());
+        $mform->setType('verificationcode', PARAM_ALPHANUM);
+
+        $mform->addElement('hidden', 'phonenumber', 0);
+        $mform->setType('phonenumber', PARAM_TEXT);
+        $mform->setDefault('phonenumber', $phonenumber);
+
+        $duration = get_config('factor_sms', 'duration');
+        $code = $this->secretmanager->create_secret($duration, true);
+        if (!empty($code)) {
+            $this->sms_verification_code($code, $phonenumber);
+
+            // Tell users it was sent.
+            $phonenumber = helper::obfuscate_phonenumber($phonenumber);
+            $message = get_string('logindesc', 'factor_' . $this->name, $phonenumber);
+            $mform->addElement('html', \html_writer::tag('p', $message . '<br>'));
+        }
+
+        $mform->registerNoSubmitButton('back');
+        $mform->addElement('submit', 'back', get_string('backbutton', 'factor_sms'), ['class' => 'btn btn-secondary']);
+        
+        // Disable the form check prompt.
+        $mform->disable_form_change_checker();
+
+        return $mform;
+    }
+
+    /**
+     * Returns an array of errors, where array key = field id and array value = error text.
+     *
+     * @param array $data
+     * @return array
+     */
+    public function code_setup_factor_form_validation(array $data): array {
         $errors = [];
         $result = $this->secretmanager->validate_secret($data['verificationcode']);
         if ($result !== $this->secretmanager::VALID) {
@@ -196,21 +224,8 @@ class factor extends object_factor_base {
      * @param stdClass $data
      * @return stdClass|null the factor record, or null.
      */
-    public function setup_user_factor(stdClass $data): ?stdClass {
+    public function code_setup_user_factor(stdClass $data): ?stdClass {
         global $DB, $SESSION, $USER;
-
-        // Handle phone number submission.
-        if (empty($USER->phone2) && empty($SESSION->tool_mfa_sms_number)) {
-            $SESSION->tool_mfa_sms_number = !empty($data->phonenumber) ? $data->phonenumber : '';
-
-            $addurl = new \moodle_url('/admin/tool/mfa/action.php', [
-                'action' => 'setup',
-                'factor' => 'sms',
-            ]);
-            redirect($addurl);
-        }
-
-        $label = $this->get_phonenumber();
 
         // If the user somehow gets here through form resubmission.
         // We dont want two phones active.
@@ -219,6 +234,7 @@ class factor extends object_factor_base {
         }
 
         $time = time();
+        $label = $data->phonenumber;
         $row = new \stdClass();
         $row->userid = $USER->id;
         $row->factor = $this->name;
@@ -306,7 +322,7 @@ class factor extends object_factor_base {
         $record = $DB->get_record('tool_mfa',
             ['userid' => $USER->id, 'factor' => $this->name, 'secret' => '', 'revoked' => 0]);
 
-        return !empty($record) ? false : true;
+        return empty($record);
     }
 
     /**
@@ -372,11 +388,7 @@ class factor extends object_factor_base {
      * @return bool
      */
     private function check_verification_code(string $enteredcode): bool {
-        $state = $this->secretmanager->validate_secret($enteredcode);
-        if ($state === \tool_mfa\local\secret_manager::VALID) {
-            return true;
-        }
-        return false;
+        return ($this->secretmanager->validate_secret($enteredcode) === \tool_mfa\local\secret_manager::VALID) ? true : false;
     }
 
     /**

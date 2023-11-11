@@ -24,10 +24,12 @@
  */
 
 $string['action:revoke'] = 'Revoke mobile phone number';
-$string['addnumber'] = 'Enter mobile phone number';
+$string['addnumber'] = 'Mobile number';
+$string['backbutton'] = 'Back';
 $string['clientnotfound'] = 'AWS Service client not found. Client must be fully qualified classname e.g. \Aws\S3\S3Client';
-$string['errorawsconection'] = 'Error connecting to AWS server';
+$string['errorawsconection'] = 'Error connecting to AWS server: {$a}';
 $string['errorsmssent'] = 'Error sending a SMS message containing your verification code.';
+$string['error:wrongphonenumber'] = 'The phone number you provided is not in a valid format.';
 $string['error:wrongverification'] = 'Wrong code. Try again.';
 $string['event:smssent'] = 'SMS Message sent';
 $string['event:smssentdescription'] = 'The user with id {$a->userid} had a verification code sent to them via SMS <br> Information: {$a->debuginfo}';
@@ -37,8 +39,7 @@ $string['loginoption'] = 'Have a code sent to you mobile phone';
 $string['loginskip'] = "I didn't receive a code";
 $string['loginsubmit'] = 'Continue';
 $string['logintitle'] = 'Enter the verification code sent to your mobile';
-$string['phonehelp'] = 'Enter your local mobile phone number, or an international phone number starting with \'+\'.';
-$string['phoneplaceholder'] = '04xx xxx xxx or +61 4xx xxx xxx';
+$string['phonehelp'] = 'Enter your mobile number (including country code) to receive a verification code.';
 $string['pluginname'] = 'Mobile phone SMS';
 $string['privacy:metadata'] = 'The mobile phone SMS	factor plugin does not store any personal data';
 $string['settings:aws'] = 'AWS SNS';
