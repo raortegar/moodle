@@ -118,10 +118,10 @@ interface object_factor {
     /**
      * Setups in given factor when the form is cancelled
      *
-     * @param mixed $factorid
-     * @return bool|null
+     * @param int $factorid
+     * @return void
      */
-    public function setup_factor_form_is_cancelled(mixed $factorid): void;
+    public function setup_factor_form_is_cancelled(int $factorid): void;
 
     /**
      * Setups given factor and adds it to user's active factors list.
