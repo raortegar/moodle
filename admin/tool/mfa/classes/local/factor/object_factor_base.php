@@ -188,10 +188,10 @@ abstract class object_factor_base implements object_factor {
      *
      * Dummy implementation. Should be overridden in child class.
      *
-     * @param mixed $factorid
+     * @param int $factorid
      * @return void
      */
-    public function setup_factor_form_is_cancelled(mixed $factorid): void {
+    public function setup_factor_form_is_cancelled(int $factorid): void {
     }
 
     /**

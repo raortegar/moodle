@@ -25,9 +25,9 @@
 
 $string['action:revoke'] = 'Revoke mobile phone number';
 $string['addnumber'] = 'Mobile number';
-$string['backbutton'] = 'Back';
-$string['backbuttoninfo'] = "If you didn't get the code or entered the wrong number, please go back and try again.";
 $string['clientnotfound'] = 'AWS Service client not found. Client must be fully qualified classname e.g. \Aws\S3\S3Client';
+$string['editphonenumber'] = 'Edit phone number';
+$string['editphonenumberinfo'] = "If you didn't get the code or entered the wrong number, please edit number and try again.";
 $string['errorawsconection'] = 'Error connecting to AWS server: {$a}';
 $string['errorsmssent'] = 'Error sending a SMS message containing your verification code.';
 $string['error:wrongphonenumber'] = 'The phone number you provided is not in a valid format.';
@@ -35,7 +35,7 @@ $string['error:wrongverification'] = 'Wrong code. Try again.';
 $string['event:smssent'] = 'SMS Message sent';
 $string['event:smssentdescription'] = 'The user with id {$a->userid} had a verification code sent to them via SMS <br> Information: {$a->debuginfo}';
 $string['info'] = '<p>Setup a mobile phone number to receive SMS one-time security codes on.</p>';
-$string['logindesc'] = 'We\'ve just sent an SMS containing a 6-digit code to your mobile number: {$a}.';
+$string['logindesc'] = 'We\'ve just sent an SMS containing a 6-digit code to your mobile number: {$a}';
 $string['loginoption'] = 'Have a code sent to you mobile phone';
 $string['loginskip'] = "I didn't receive a code";
 $string['loginsubmit'] = 'Continue';
