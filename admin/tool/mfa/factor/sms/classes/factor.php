@@ -82,7 +82,7 @@ class factor extends object_factor_base {
      * @return string
      */
     public function get_setup_string(): string {
-        return get_string('setupfactor', 'factor_sms');
+        return get_string('setupfactorbutton', 'factor_sms');
     }
 
     /**
@@ -92,7 +92,17 @@ class factor extends object_factor_base {
      * @return \MoodleQuickForm $mform
      */
     public function setup_factor_form_definition(\MoodleQuickForm $mform): \MoodleQuickForm {
-        global $OUTPUT;
+        global $OUTPUT, $USER, $DB;
+
+        if (!empty(
+            $phonenumber = $DB->get_field('tool_mfa', 'label', ['factor' => $this->name, 'userid' => $USER->id, 'revoked' => 0])
+        )) {
+            redirect(
+                new \moodle_url('/admin/tool/mfa/user_preferences.php'),
+                get_string('factorsetup', 'tool_mfa', $phonenumber),
+                null,
+                \core\output\notification::NOTIFY_SUCCESS);
+        }
 
         $mform->addElement('html', $OUTPUT->heading(get_string('setupfactor', 'factor_sms'), 2));
 
@@ -107,7 +117,6 @@ class factor extends object_factor_base {
                     'inputmode' => 'tel',
                 ]);
             $mform->setType('phonenumber', PARAM_TEXT);
-            $mform->addRule('phonenumber', get_string('required'), 'required', null, 'client');
 
             // HTML to display a message about the phone number.
             $message = \html_writer::tag('div', '', ['class' => 'col-md-3']);
@@ -133,27 +142,24 @@ class factor extends object_factor_base {
             return $mform;
         }
 
-        $message = '';
         $duration = get_config('factor_sms', 'duration');
         $code = $this->secretmanager->create_secret($duration, true);
         if (!empty($code)) {
             $this->sms_verification_code($code, $phonenumber);
-            $obfuscatephonenumber = helper::obfuscate_phonenumber($phonenumber);
-            $message = get_string('logindesc', 'factor_sms', '<b>' . $obfuscatephonenumber . '</b><br/>');
         }
-        $message .= get_string('backbuttoninfo', 'factor_sms');
+        $message = get_string('logindesc', 'factor_sms', '<b>' . $phonenumber . '</b><br/>');
+        $message .= get_string('editphonenumberinfo', 'factor_sms');
         $mform->addElement('html', \html_writer::tag('p', $OUTPUT->notification($message, 'success')));
 
         $mform->addElement(new \tool_mfa\local\form\verification_field());
         $mform->setType('verificationcode', PARAM_ALPHANUM);
-        $mform->addRule('verificationcode', get_string('required'), 'required', null, 'client');
 
         $editphonenumber = \html_writer::link(
             new \moodle_url('/admin/tool/mfa/factor/sms/editphonenumber.php', ['sesskey' => sesskey()]),
-            get_string('backbutton', 'factor_sms'),
+            get_string('editphonenumber', 'factor_sms'),
             ['class' => 'btn btn-secondary', 'type' => 'button']);
 
-        $mform->addElement('html', \html_writer::tag('div', $editphonenumber, ['class' => 'float-sm-left']));
+        $mform->addElement('html', \html_writer::tag('div', $editphonenumber, ['class' => 'float-sm-left col-md-4']));
 
         // Disable the form check prompt.
         $mform->disable_form_change_checker();
@@ -174,9 +180,9 @@ class factor extends object_factor_base {
         if (!empty($USER->phone2)) {
             return $USER->phone2;
         }
-        $instance = $DB->get_record('tool_mfa', ['factor' => $this->name, 'userid' => $USER->id, 'revoked' => 0]);
-        if (!empty($instance)) {
-            return $DB->get_field('tool_mfa', 'label', ['id' => $instance->id]);
+        $phonenumber = $DB->get_field('tool_mfa', 'label', ['factor' => $this->name, 'userid' => $USER->id, 'revoked' => 0]);
+        if (!empty($phonenumber)) {
+            return $phonenumber;
         }
 
         return null;
@@ -207,14 +213,27 @@ class factor extends object_factor_base {
     /**
      * Reset values of the session data of the given factor.
      *
-     * @param mixed $factorid
-     * @return bool|null
+     * @param int $factorid
+     * @return void
      */
-    public function setup_factor_form_is_cancelled(mixed $factorid): void {
+    public function setup_factor_form_is_cancelled(int $factorid): void {
         global $SESSION;
         if (!empty($SESSION->tool_mfa_sms_number)) {
             unset($SESSION->tool_mfa_sms_number);
         }
+    }
+
+    /**
+     * Setup submit button string in given factor
+     *
+     * @return string|null
+     */
+    public function setup_factor_form_submit_button_string(): ?string {
+        global $SESSION;
+        if (!empty($SESSION->tool_mfa_sms_number)) {
+            return get_string('setupsubmitcode', 'factor_sms');
+        }
+        return get_string('setupsubmitphone', 'factor_sms');
     }
 
     /**
@@ -429,7 +448,6 @@ class factor extends object_factor_base {
         if (empty($phonenumber)) {
             return get_string('errorsmssent', 'factor_sms');
         } else {
-            $phonenumber = helper::obfuscate_phonenumber($phonenumber);
             return get_string('logindesc', 'factor_' . $this->name, $phonenumber);
         }
     }

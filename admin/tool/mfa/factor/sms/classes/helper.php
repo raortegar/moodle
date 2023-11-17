@@ -55,25 +55,6 @@ class helper {
     }
 
     /**
-     * Redact the phone number for displaying on screen.
-     * Keep the country code plus first 2 and last 2 digits
-     *
-     * @param string $phonenumber the phone number.
-     * @return string the redacted phone number.
-     */
-    public static function obfuscate_phonenumber(string $phonenumber): string {
-        if (empty($phonenumber)) {
-            return '';
-        }
-        if (str_starts_with ($phonenumber, '+')) {
-            $redacted = substr($phonenumber, 0, 4) . str_repeat('x', strlen($phonenumber) - 6) . substr($phonenumber, -2);
-        } else {
-            $redacted = substr($phonenumber, 0, 2) . str_repeat('x', strlen($phonenumber) - 4) . substr($phonenumber, -2);
-        }
-        return $redacted;
-    }
-
-    /**
      * Validate phone number with E.164 format. https://en.wikipedia.org/wiki/E.164
      *
      * @param string $phonenumber from the given user input
