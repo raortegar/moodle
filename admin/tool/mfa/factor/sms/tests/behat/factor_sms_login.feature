@@ -6,54 +6,51 @@ Feature: Login user with sms authentication factor
 
   Background:
     Given I log in as "admin"
-    # Enable SMS factor and MFA authentication.
-    And I navigate to "Plugins > Admin tools > Multi-factor authentication" in site administration
-    When I set the field "MFA plugin enabled" to "1"
-    And I set the field "Lockout threshold" to "3"
-    Then I press "Save changes"
-    And  I visit "/admin/settings.php?section=factor_sms"
-    And I set the field "Enable factor" to "1"
-    Then I press "Save changes"
-    # Set up user factor.
+    And the following config values are set as admin:
+      | enabled | 1 | tool_mfa |
+      | lockout | 3 | tool_mfa |
+    And the following config values are set as admin:
+      | enabled | 1 | factor_sms |
+    # Set up user SMS factor in user preferences.
     When I follow "Preferences" in the user menu
     And I click on "Multi-factor authentication preferences" "link"
     And I click on "Setup SMS" "button"
     And I set the field "Mobile number" to "+34649709233"
-    Then I press "Send code"
-    When I set the field "Enter code" with valid code
+    And I press "Send code"
+    And I set the field "Enter code" with valid code
     Then I press "Save"
 
-  Scenario: Unable to login user without set up sms factor
+  Scenario: Revoke factor
     Given I click on "Revoke" "link"
-    Then I should see "Are you sure you want to revoke factor?"
-    When I press "Revoke"
-    Then I should see "successfully revoked" in the ".alert-success" "css_element"
-    When  I log out
+    And I should see "Are you sure you want to revoke factor?"
+    And I press "Revoke"
+    And I should see "successfully revoked"
+    When I log out
     And I log in as "admin"
-    Then I should see "Unable to authenticate" in the ".alert-danger" "css_element"
+    Then I should see "Unable to authenticate"
 
   Scenario: Login user successfully with sms verification
-    Given  I log out
-    When I log in as "admin"
-    Then  I should see "2-step verification"
-    And  I should see "Enter code"
+    Given I log out
+    And I log in as "admin"
+    And I should see "2-step verification"
+    And I should see "Enter code"
     When I set the field "Enter code" with valid code
     And I click on "Continue" "button"
-    Then I should see "Welcome back"
+    Then I am logged in as "admin"
 
   Scenario: Wrong code number end of possible attempts
-    Given  I log out
-    When I log in as "admin"
-    Then  I should see "2-step verification"
-    And  I should see "Enter code"
+    Given I log out
+    And I log in as "admin"
+    And I should see "2-step verification"
+    And I should see "Enter code"
     When I set the field "Enter code" to "555556"
     And I click on "Continue" "button"
-    Then I should see "Wrong code."
+    And I should see "Wrong code."
     And I should see "You have 2 attempts left."
-    When I set the field "Enter code" to "555553"
+    And I set the field "Enter code" to "555553"
     And I click on "Continue" "button"
-    Then I should see "Wrong code."
+    And I should see "Wrong code."
     And I should see "1 attempts left."
-    When I set the field "Enter code" to "555553"
+    And I set the field "Enter code" to "555553"
     And I click on "Continue" "button"
     Then I should see "Unable to authenticate"

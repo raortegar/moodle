@@ -266,7 +266,6 @@ class secret_manager_test extends \advanced_testcase {
     /**
      * Tests with cleanup temporal secrets
      *
-     * @covers ::create_secret
      * @covers ::cleanup_temp_secrets
      */
     public function test_cleanup_temp_secrets(): void {
@@ -286,6 +285,6 @@ class secret_manager_test extends \advanced_testcase {
 
         // Check there are no secrets of the current user.
         $records = $DB->get_records('tool_mfa_secrets', ['userid' => $user->id]);
-        $this->assertTrue(empty($records));
+        $this->assertEmpty($records);
     }
 }

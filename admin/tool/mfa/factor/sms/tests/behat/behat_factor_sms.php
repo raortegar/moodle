@@ -43,7 +43,7 @@ class behat_factor_sms extends behat_base {
      *
      * @param string $field
      */
-    public function i_set_the_field_with_valid_code($field) {
+    public function i_set_the_field_with_valid_code(string $field): void {
         global $DB, $USER;
 
         $record = $DB->get_record('tool_mfa_secrets',
