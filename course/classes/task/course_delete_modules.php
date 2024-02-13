@@ -60,14 +60,43 @@ class course_delete_modules extends \core\task\adhoc_task {
             \core\cron::setup_user($user);
         }
 
-        $cms = $this->get_custom_data()->cms;
-        foreach ($cms as $cm) {
+        $customdata = $this->get_custom_data();
+        $cms = $customdata->cms;
+        $exceptions = [];
+        $cmdeletesucess = false;
+        foreach ($cms as $key => $cm) {
             try {
                 course_delete_module($cm->id);
+                $cmdeletesucess = true;
+                // Remove the success cms from the array.
+                unset($cms[$key]);
             } catch (\Exception $e) {
-                throw new \coding_exception("The course module {$cm->id} could not be deleted. "
-                    . "{$e->getMessage()}: {$e->getFile()}({$e->getLine()}) {$e->getTraceAsString()}");
+                // Keep the information instead of throw an exception and continue with next cms.
+                $exceptions[] = ("The course module {$cm->id} could not be deleted. "
+                   . "{$e->getMessage()}: {$e->getFile()}({$e->getLine()}) {$e->getTraceAsString()}");
+                continue;
             }
         }
+
+        // Update the current custom with the failed cms.
+        if (!empty($cmdeletesucess) && !empty($exceptions)) {
+            $customdata->cms = $cms;
+            $this->set_custom_data($customdata);
+        }
+
+        // Throw the existing exceptions if there is any.
+        if (!empty($exceptions)) {
+            throw new \coding_exception("The following course modules could not be deleted:\n " .
+            implode('\n', $exceptions));
+        }
+    }
+
+    /**
+     * Sets attemptsavailable to false.
+     *
+     * @return boolean
+     */
+    public function retry_until_success(): bool {
+        return false;
     }
 }
