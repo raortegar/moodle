@@ -101,6 +101,7 @@ final class adhoc_task_test extends \advanced_testcase {
      * Test adhoc task failure retry backoff.
      */
     public function test_get_next_adhoc_task_fail_retry(): void {
+        global $DB;
         $this->resetAfterTest(true);
 
         // Create an adhoc task.
@@ -124,6 +125,20 @@ final class adhoc_task_test extends \advanced_testcase {
         $this->assertEquals($taskid, $task->get_id());
         $task->execute();
         manager::adhoc_task_failed($task);
+
+        // Finish the number of available attempts.
+        $attemptsavailable = $DB->get_field(
+            table: 'task_adhoc',
+            return: 'attemptsavailable',
+            conditions: ['id' => $taskid]
+        );
+        for ($x = 0; $x < $attemptsavailable; $x++) {
+            $delay = $task->get_fail_delay() * 2;
+            $task = manager::get_next_adhoc_task($now + $delay);
+            $task->execute();
+            manager::adhoc_task_failed($task);
+        }
+        $this->assertEquals(86400, actual: $task->get_fail_delay());
 
         // Should get the adhoc task immediately.
         $task = manager::get_adhoc_task($taskid);

@@ -59,7 +59,7 @@ class manager {
     /**
      * @var int Used for max retry.
      */
-    const MAX_RETRY = 9;
+    const MAX_RETRY = 12;
 
     /**
      * @var ?task_base $runningtask Used to tell what is the current running task in this process.
