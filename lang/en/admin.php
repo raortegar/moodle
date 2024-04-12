@@ -1457,6 +1457,7 @@ $string['themelist'] = 'Theme list';
 $string['themeresetcaches'] = 'Clear theme caches';
 $string['themeselect'] = 'Change theme';
 $string['themeselector'] = 'Themes';
+$string['themeselectorlegacy'] = 'Legacy themes';
 $string['themesettingsadvanced'] = 'Advanced theme settings';
 $string['themeeditsettingsname'] = 'Edit theme settings \'{$a}\'';
 $string['themesettingsname'] = 'Theme settings \'{$a}\'';

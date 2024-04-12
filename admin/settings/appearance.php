@@ -8,6 +8,8 @@ $capabilities = array(
 );
 
 if ($hassiteconfig or has_any_capability($capabilities, $systemcontext)) { // speedup for non-admins, add all caps used on this page
+    $ADMIN->add('appearance', new admin_category('themes', new lang_string('themeselectorlegacy', 'admin')));
+
     // Logos section.
     $temp = new admin_settingpage('logos', new lang_string('logossettings', 'admin'));
 
