@@ -92,8 +92,6 @@ $string['individualconversations'] = 'Private';
 $string['info'] = 'User info';
 $string['isnotinyourcontacts'] = '{$a} is not in your contacts';
 $string['loadmore'] = 'Load more';
-$string['loggedin'] = 'Online';
-$string['loggedoff'] = 'Offline';
 $string['managemessageoutputs'] = 'Default notification preferences';
 $string['messageoutputs'] = 'Notification plugins';
 $string['messagepreferences'] = 'Message preferences';
@@ -275,3 +273,7 @@ $string['wouldliketocontactyou'] = 'Would like to contact you';
 $string['you'] = 'You:';
 $string['youhaveblockeduser'] = 'You have blocked this user.';
 $string['yourcontactrequestpending'] = 'Your contact request is pending with {$a}';
+
+// Deprecated since Moodle 4.5.
+$string['loggedin'] = 'Online';
+$string['loggedoff'] = 'Offline';
