@@ -1,0 +1,316 @@
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+/**
+ * Module to load and render the tools for the AI assist plugin.
+ *
+ * @module     aiplacement_courseassist/placement
+ * @copyright  2024 Huong Nguyen <huongnv13@gmail.com>
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+import {getPolicyStatus, setPolicyStatus} from 'core/ai/policy';
+import Templates from 'core/templates';
+import Ajax from 'core/ajax';
+import 'core/copy_to_clipboard';
+import Notification from 'core/notification';
+import Selectors from 'aiplacement_courseassist/selectors';
+
+const AICourseAssist = class {
+
+    /**
+     * The user ID.
+     * @type {Integer}
+     */
+    userId;
+    /**
+     * The context ID.
+     * @type {Integer}
+     */
+    contextId;
+
+    /**
+     * Constructor.
+     * @param {Integer} userId The user ID.
+     * @param {Integer} contextId The context ID.
+     */
+    constructor(userId, contextId) {
+        this.userId = userId;
+        this.contextId = contextId;
+
+        this.aiDrawerElement = document.querySelector(Selectors.ELEMENTS.AIDRAWER);
+        this.aiDrawerBodyElement = document.querySelector(Selectors.ELEMENTS.AIDRAWER_BODY);
+        this.pageElement = document.querySelector(Selectors.ELEMENTS.PAGE);
+
+        this.registerEventListeners();
+    }
+
+    /**
+     * Register event listeners.
+     */
+    registerEventListeners() {
+        document.addEventListener('click', async(e) => {
+            const summariseAction = e.target.closest(Selectors.ACTIONS.SUMMARY);
+            if (summariseAction) {
+                e.preventDefault();
+                this.toggleAIDrawer();
+                const isPolicyAccepted = await this.isPolicyAccepted();
+                if (!isPolicyAccepted) {
+                    // Display policy.
+                    this.displayPolicy();
+                    return;
+                }
+                // Display summary.
+                this.displaySummary();
+            }
+        });
+    }
+
+    /**
+     * Register event listeners for the policy.
+     */
+    registerPolicyEventListeners() {
+        const acceptAction = document.querySelector(Selectors.ACTIONS.ACCEPT);
+        const declineAction = document.querySelector(Selectors.ACTIONS.DECLINE);
+        acceptAction.addEventListener('click', (e) => {
+            e.preventDefault();
+            this.acceptPolicy().then(() => {
+                return this.displaySummary();
+            }).catch(Notification.exception);
+        });
+        declineAction.addEventListener('click', (e) => {
+            e.preventDefault();
+            this.closeAIDrawer();
+        });
+    }
+
+    /**
+     * Register event listeners for the error.
+     */
+    registerErrorEventListeners() {
+        const retryAction = document.querySelector(Selectors.ACTIONS.RETRY);
+        retryAction.addEventListener('click', (e) => {
+            e.preventDefault();
+            this.aiDrawerBodyElement.dataset.hasdata = '0';
+            this.displaySummary();
+        });
+    }
+
+    /**
+     * Register event listeners for the response.
+     */
+    registerResponseEventListeners() {
+        const regenerateAction = document.querySelector(Selectors.ACTIONS.REGENERATE);
+        regenerateAction.addEventListener('click', (e) => {
+            e.preventDefault();
+            this.aiDrawerBodyElement.dataset.hasdata = '0';
+            this.displaySummary();
+        });
+    }
+
+    registerLoadingEventListeners() {
+        const cancelAction = document.querySelector(Selectors.ACTIONS.CANCEL);
+        cancelAction.addEventListener('click', (e) => {
+            e.preventDefault();
+            this.setRequestCancelled();
+            this.toggleAIDrawer();
+        });
+    }
+
+    /**
+     * Check if the AI drawer is open.
+     * @return {boolean} True if the AI drawer is open, false otherwise.
+     */
+    isAIDrawerOpen() {
+        return this.aiDrawerElement.classList.contains('show');
+    }
+
+    /**
+     * Check if the request is cancelled.
+     * @return {boolean} True if the request is cancelled, false otherwise.
+     */
+    isRequestCancelled() {
+        return this.aiDrawerBodyElement.dataset.cancelled === '1';
+    }
+
+    setRequestCancelled() {
+        this.aiDrawerBodyElement.dataset.cancelled = '1';
+    }
+
+    /**
+     * Open the AI drawer.
+     */
+    openAIDrawer() {
+        this.aiDrawerElement.classList.add('show');
+        if (!this.pageElement.classList.contains('show-drawer-right')) {
+            this.addPadding();
+        }
+    }
+
+    /**
+     * Close the AI drawer.
+     */
+    closeAIDrawer() {
+        this.aiDrawerElement.classList.remove('show');
+        if (this.pageElement.classList.contains('show-drawer-right') && this.aiDrawerBodyElement.dataset.removepadding === '1') {
+            this.removePadding();
+        }
+        // Focus back to the summary button.
+        document.querySelector(Selectors.ACTIONS.SUMMARY).focus();
+    }
+
+    /**
+     * Toggle the AI drawer.
+     */
+    toggleAIDrawer() {
+        if (this.isAIDrawerOpen()) {
+            this.closeAIDrawer();
+        } else {
+            this.openAIDrawer();
+        }
+    }
+
+    /**
+     * Add padding to the page to make space for the AI drawer.
+     */
+    addPadding() {
+        this.pageElement.classList.add('show-drawer-right');
+        this.aiDrawerBodyElement.dataset.removepadding = '1';
+    }
+
+    /**
+     * Remove padding from the page.
+     */
+    removePadding() {
+        this.pageElement.classList.remove('show-drawer-right');
+        this.aiDrawerBodyElement.dataset.removepadding = '0';
+    }
+
+    /**
+     * Check if the policy is accepted.
+     * @return {bool} True if the policy is accepted, false otherwise.
+     */
+    async isPolicyAccepted() {
+        const checkPolicy = await getPolicyStatus(this.userId, this.contextId);
+        return checkPolicy.status;
+    }
+
+    /**
+     * Accept the policy.
+     * @return {Promise<Object>}
+     */
+    async acceptPolicy() {
+        return await setPolicyStatus(this.userId, this.contextId);
+    }
+
+    /**
+     * Check if the AI drawer has generated content or not.
+     * @return {boolean} True if the AI drawer has generated content, false otherwise.
+     */
+    hasGeneratedContent() {
+        return this.aiDrawerBodyElement.dataset.hasdata === '1';
+    }
+
+    /**
+     * Display the policy.
+     */
+    displayPolicy() {
+        Templates.render('aiplacement_courseassist/policy', {}).then((html) => {
+            this.aiDrawerBodyElement.innerHTML = html;
+            this.registerPolicyEventListeners();
+            return;
+        }).catch(Notification.exception);
+    }
+
+    /**
+     * Display the loading spinner.
+     */
+    displayLoading() {
+        Templates.render('aiplacement_courseassist/loading', {}).then((html) => {
+            this.aiDrawerBodyElement.innerHTML = html;
+            this.registerLoadingEventListeners();
+            return;
+        }).catch(Notification.exception);
+    }
+
+    /**
+     * Display the summary.
+     */
+    async displaySummary() {
+        if (!this.hasGeneratedContent()) {
+            this.displayLoading();
+            const request = {
+                methodname: 'aiplacement_courseassist_summarise_text',
+                args: {
+                    contextid: this.contextId,
+                    prompttext: this.getTextContent(),
+                }
+            };
+            try {
+                const responseObj = await Ajax.call([request])[0];
+                if (responseObj.error) {
+                    window.console.log(responseObj.error);
+                    this.displayError();
+                    return;
+                } else {
+                    if (!this.isRequestCancelled()) {
+                        window.console.log(responseObj);
+                        this.displayResponse(responseObj.generatedcontent);
+                        return;
+                    } else {
+                        this.aiDrawerBodyElement.dataset.cancelled = '0';
+                    }
+                }
+            } catch (error) {
+                window.console.log(error);
+            }
+        }
+    }
+
+    /**
+     * Display the response.
+     * @param {String} content The content to display.
+     */
+    displayResponse(content) {
+        Templates.render('aiplacement_courseassist/response', {content: content}).then((html) => {
+            this.aiDrawerBodyElement.innerHTML = html;
+            this.aiDrawerBodyElement.dataset.hasdata = '1';
+            this.registerResponseEventListeners();
+            return;
+        }).catch(Notification.exception);
+    }
+
+    /**
+     * Display the error.
+     */
+    displayError() {
+        Templates.render('aiplacement_courseassist/error', {}).then((html) => {
+            this.aiDrawerBodyElement.innerHTML = html;
+            this.registerErrorEventListeners();
+            return;
+        }).catch(Notification.exception);
+    }
+
+    /**
+     * Get the text content of the main region.
+     * @return {String} The text content.
+     */
+    getTextContent() {
+        const mainRegion = document.querySelector(Selectors.ELEMENTS.MAIN_REGION);
+        return mainRegion.innerText || mainRegion.textContent;
+    }
+};
+
+export default AICourseAssist;
