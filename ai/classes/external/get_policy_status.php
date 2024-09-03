@@ -78,7 +78,7 @@ class get_policy_status extends external_api {
         }
 
         return [
-            'status' => manager::get_user_policy($userid),
+            'status' => manager::get_user_policy_status($userid),
         ];
     }
 
