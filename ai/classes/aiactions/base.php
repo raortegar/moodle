@@ -120,6 +120,11 @@ abstract class base {
         return 'ai_action_' . $this->get_basename();
     }
 
+    /**
+     * Get the class name of the response object.
+     *
+     * @return string The class name of the response object.
+     */
     public static function get_response_classname(): string {
         return responses::class . '\\response_' . self::get_basename();
     }
