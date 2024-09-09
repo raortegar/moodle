@@ -96,7 +96,7 @@ abstract class process_base {
     /**
      * Get the instantiated Response Class for the action described by this processor.
      *
-     * @param array $args
+     * @param mixed ...$args The arguments to pass to the response class constructor.
      * @return response_base
      */
     protected function get_response(...$args): response_base {
