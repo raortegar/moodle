@@ -66,6 +66,11 @@ final class base_test extends \advanced_testcase {
         $contextid = 1;
         // Create an anonymous class that extends the base class.
         $base = new class($contextid) extends \core_ai\aiactions\base {
+            /**
+             * Store the response.
+             * @param response_base $response
+             * @return int
+             */
             public function store(response_base $response): int {
                 return 0;
             }
