@@ -50,7 +50,6 @@ class get_policy_status extends external_api {
      *
      * @since  Moodle 4.5
      * @param int $userid The user ID.
-     * @param int $contextid The context ID.
      * @return array The generated content.
      */
     public static function execute(

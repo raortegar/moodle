@@ -34,6 +34,9 @@ use editor_tiny\plugin_with_menuitems;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class plugininfo extends plugin implements plugin_with_buttons, plugin_with_menuitems, plugin_with_configuration {
+    /**
+     * @var array|string[] The possible actions for the plugin.
+     */
     protected static array $possibleactions = [
         'generate_text' => generate_text::class,
         'generate_image' => generate_image::class,
