@@ -15,25 +15,18 @@
     along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 }}
 {{!
-    @template core_admin/table/namedesc
+    @template core_ai/admin_noproviders
 
-    Admin setting template to display an name and description
-    in a single table cell.
+    Template to display a message when there are no AI providers configured.
 
     Context variables required for this template:
-    * name - Name of the table setting
-    * description - Description of the setting
+    * providerurl - URL to the AI provider settings page.
 
     Example context (json):
     {
-        "name": "Fancy Setting",
-        "description": "Text that describes this setting well"
+        "providerurl": "http://example.com"
     }
 }}
-{{!
-    Name and description.
-}}
-<div>
-    <div><strong>{{name}}</strong></div>
-    <div>{{description}}</div>
+<div class="alert alert-danger w-75">
+    {{#str}}noproviders, core_ai, {{{providerurl}}}{{/str}}
 </div>

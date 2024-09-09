@@ -27,11 +27,6 @@
 defined('MOODLE_INTERNAL') || die();
 
 if ($hassiteconfig) {
-
-    // Add settings page for site wide AI settings.
-    $ADMIN->add('ai',
-            new admin_settingpage('aisettings', new lang_string('aisettings', 'ai')));
-
     // Add settings page for AI provider settings.
     $providers = new admin_settingpage('aiprovider', new lang_string('aiprovidersettings', 'ai'));
     $providers->add(new admin_setting_heading('availableproviders',

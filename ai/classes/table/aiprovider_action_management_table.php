@@ -175,7 +175,7 @@ class aiprovider_action_management_table extends flexible_table implements dynam
      * @return string
      */
     protected function col_settings(stdClass $row): string {
-        // TODO: add settings link.
+        // TODO: MDL-82609 - Add settings link.
         return '';
     }
 

@@ -44,7 +44,6 @@ $string['action_translate_text_desc'] = 'Translate provided text from one langua
 $string['ai'] = 'AI';
 $string['aiplacementsettings'] = 'Manage settings for AI placements';
 $string['aiprovidersettings'] = 'Manage settings for AI providers';
-$string['aisettings'] = 'Manage site wide AI settings';
 $string['aiusagepolicy'] = 'AI usage policy';
 $string['availableplacements'] = 'Available AI placements';
 $string['availableplacements_desc'] = 'Select an AI placement to manage its settings.<br/>

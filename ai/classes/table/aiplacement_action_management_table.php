@@ -41,9 +41,6 @@ class aiplacement_action_management_table extends flexible_table implements dyna
      * @param string $uniqueid The table unique id.
      */
     public function __construct(string $uniqueid) {
-        // Check if the current user has the capability to access this table.
-        require_capability('moodle/site:config', $this->get_context());
-
         // Parse the unique id and get the plugin name.
         $parseuniqueid = explode('-', $uniqueid);
         $pluginname = end($parseuniqueid);
@@ -131,11 +128,15 @@ class aiplacement_action_management_table extends flexible_table implements dyna
         global $OUTPUT;
 
         $providerurl = new moodle_url('/admin/settings.php', ['section' => 'aiprovider']);
+        if (!$this->has_provider($row->action)) {
+            return $OUTPUT->render_from_template('core_ai/admin_noproviders', [
+                'providerurl' => $providerurl->out(),
+            ]);
+        }
+
         $params = [
             'name' => $row->action::get_name(),
             'description' => $row->action::get_description(),
-            'noproviders' => !$this->has_provider($row->action),
-            'providerurl' => $providerurl->out(),
         ];
 
         return $OUTPUT->render_from_template('core_admin/table/namedesc', $params);
@@ -238,5 +239,10 @@ class aiplacement_action_management_table extends flexible_table implements dyna
     private function has_provider(string $action): bool {
         $providers = \core_ai\manager::get_providers_for_actions([$action], true);
         return !empty($providers[$action]);
+    }
+
+    #[\Override]
+    public function has_capability(): bool {
+        return has_capability('moodle/site:config', $this->get_context());
     }
 }

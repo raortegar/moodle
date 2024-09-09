@@ -1250,7 +1250,7 @@ function xmldb_main_upgrade($oldversion) {
         upgrade_main_savepoint(true, 2024082900.01);
     }
 
-    if ($oldversion < 2024090700.00) {
+    if ($oldversion < 2024090700.01) {
         // Define table ai_policy_register to be created.
         $table = new xmldb_table('ai_policy_register');
 
@@ -1362,7 +1362,7 @@ function xmldb_main_upgrade($oldversion) {
         }
 
         // Main savepoint reached.
-        upgrade_main_savepoint(true, 2024090700.00);
+        upgrade_main_savepoint(true, 2024090700.01);
     }
 
     return true;
