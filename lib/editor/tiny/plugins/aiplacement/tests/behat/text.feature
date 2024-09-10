@@ -37,32 +37,32 @@ Feature: Generate text using AI
     Given I disable "editor" "aiplacement" plugin
     When I am on the "PageName2" "page activity" page logged in as teacher1
     And I navigate to "Settings" in current page administration
-    Then "AI Generate Text" button should not exist in the "Description" TinyMCE editor
+    Then "AI generate text" button should not exist in the "Description" TinyMCE editor
     And I enable "editor" "aiplacement" plugin
     And I am on the "PageName2" "page activity" page logged in as teacher1
     And I navigate to "Settings" in current page administration
-    And "AI Generate Text" button should exist in the "Description" TinyMCE editor
+    And "AI generate text" button should exist in the "Description" TinyMCE editor
 
   @javascript
   Scenario: Text generation using AI is not available if provider is not enabled
     Given I disable "openai" "aiprovider" plugin
     When I am on the "PageName2" "page activity" page logged in as teacher1
     And I navigate to "Settings" in current page administration
-    Then "AI Generate Text" button should not exist in the "Description" TinyMCE editor
+    Then "AI generate text" button should not exist in the "Description" TinyMCE editor
     And I enable "openai" "aiprovider" plugin
     And I am on the "PageName2" "page activity" page logged in as teacher1
     And I navigate to "Settings" in current page administration
-    And "AI Generate Text" button should exist in the "Description" TinyMCE editor
+    And "AI generate text" button should exist in the "Description" TinyMCE editor
 
   @javascript
   Scenario: Text generation using AI is not available if the user does not have permission
     When I am on the "PageName1" "page activity" page logged in as teacher2
     And I navigate to "Settings" in current page administration
-    Then "AI Generate Text" button should not exist in the "Description" TinyMCE editor
+    Then "AI generate text" button should not exist in the "Description" TinyMCE editor
     When I am on the "PageName1" "page activity" page logged in as teacher1
     And I navigate to "Settings" in current page administration
-    And "AI Generate Text" button should exist in the "Description" TinyMCE editor
-    And I click on the "AI Generate Text" button for the "Description" TinyMCE editor
+    And "AI generate text" button should exist in the "Description" TinyMCE editor
+    And I click on the "AI generate text" button for the "Description" TinyMCE editor
     And I should see "Welcome to the new AI feature!" in the "AI usage policy" "dialogue"
     And I click on "Accept and continue" "button" in the "AI usage policy" "dialogue"
     And I should see "Describe the text you want AI to create"
