@@ -21,12 +21,13 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-import {getPolicyStatus, setPolicyStatus} from 'core/ai/policy';
 import Templates from 'core/templates';
 import Ajax from 'core/ajax';
 import 'core/copy_to_clipboard';
 import Notification from 'core/notification';
 import Selectors from 'aiplacement_courseassist/selectors';
+import Policy from 'core_ai/policy';
+import AIHelper from 'core_ai/helper';
 
 const AICourseAssist = class {
 
@@ -84,16 +85,20 @@ const AICourseAssist = class {
     registerPolicyEventListeners() {
         const acceptAction = document.querySelector(Selectors.ACTIONS.ACCEPT);
         const declineAction = document.querySelector(Selectors.ACTIONS.DECLINE);
-        acceptAction.addEventListener('click', (e) => {
-            e.preventDefault();
-            this.acceptPolicy().then(() => {
-                return this.displaySummary();
-            }).catch(Notification.exception);
-        });
-        declineAction.addEventListener('click', (e) => {
-            e.preventDefault();
-            this.closeAIDrawer();
-        });
+        if (acceptAction) {
+            acceptAction.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.acceptPolicy().then(() => {
+                    return this.displaySummary();
+                }).catch(Notification.exception);
+            });
+        }
+        if (declineAction) {
+            declineAction.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.closeAIDrawer();
+            });
+        }
     }
 
     /**
@@ -101,11 +106,13 @@ const AICourseAssist = class {
      */
     registerErrorEventListeners() {
         const retryAction = document.querySelector(Selectors.ACTIONS.RETRY);
-        retryAction.addEventListener('click', (e) => {
-            e.preventDefault();
-            this.aiDrawerBodyElement.dataset.hasdata = '0';
-            this.displaySummary();
-        });
+        if (retryAction) {
+            retryAction.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.aiDrawerBodyElement.dataset.hasdata = '0';
+                this.displaySummary();
+            });
+        }
     }
 
     /**
@@ -113,20 +120,24 @@ const AICourseAssist = class {
      */
     registerResponseEventListeners() {
         const regenerateAction = document.querySelector(Selectors.ACTIONS.REGENERATE);
-        regenerateAction.addEventListener('click', (e) => {
-            e.preventDefault();
-            this.aiDrawerBodyElement.dataset.hasdata = '0';
-            this.displaySummary();
-        });
+        if (regenerateAction) {
+            regenerateAction.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.aiDrawerBodyElement.dataset.hasdata = '0';
+                this.displaySummary();
+            });
+        }
     }
 
     registerLoadingEventListeners() {
         const cancelAction = document.querySelector(Selectors.ACTIONS.CANCEL);
-        cancelAction.addEventListener('click', (e) => {
-            e.preventDefault();
-            this.setRequestCancelled();
-            this.toggleAIDrawer();
-        });
+        if (cancelAction) {
+            cancelAction.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.setRequestCancelled();
+                this.toggleAIDrawer();
+            });
+        }
     }
 
     /**
@@ -203,16 +214,15 @@ const AICourseAssist = class {
      * @return {bool} True if the policy is accepted, false otherwise.
      */
     async isPolicyAccepted() {
-        const checkPolicy = await getPolicyStatus(this.userId, this.contextId);
-        return checkPolicy.status;
+        return await Policy.getPolicyStatus(this.userId);
     }
 
     /**
      * Accept the policy.
      * @return {Promise<Object>}
      */
-    async acceptPolicy() {
-        return await setPolicyStatus(this.userId, this.contextId);
+    acceptPolicy() {
+        return Policy.acceptPolicy();
     }
 
     /**
@@ -227,7 +237,7 @@ const AICourseAssist = class {
      * Display the policy.
      */
     displayPolicy() {
-        Templates.render('aiplacement_courseassist/policy', {}).then((html) => {
+        Templates.render('core_ai/policyblock', {}).then((html) => {
             this.aiDrawerBodyElement.innerHTML = html;
             this.registerPolicyEventListeners();
             return;
@@ -250,7 +260,10 @@ const AICourseAssist = class {
      */
     async displaySummary() {
         if (!this.hasGeneratedContent()) {
+            // Display loading spinner.
             this.displayLoading();
+            // Clear the drawer content to prevent sending some unnecessary content.
+            this.aiDrawerBodyElement.innerHTML = '';
             const request = {
                 methodname: 'aiplacement_courseassist_summarise_text',
                 args: {
@@ -267,7 +280,9 @@ const AICourseAssist = class {
                 } else {
                     if (!this.isRequestCancelled()) {
                         window.console.log(responseObj);
-                        this.displayResponse(responseObj.generatedcontent);
+                        // Replace double line breaks with <br> and with </p><p> for paragraphs.
+                        const generatedContent = AIHelper.replaceLineBreaks(responseObj.generatedcontent);
+                        this.displayResponse(generatedContent);
                         return;
                     } else {
                         this.aiDrawerBodyElement.dataset.cancelled = '0';

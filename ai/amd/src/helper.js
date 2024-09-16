@@ -14,25 +14,28 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Define all of the selectors we will be using on the AI Course assistant.
+ * The helper module or AI Subsystem.
  *
- * @module     aiplacement_courseassist/selectors
+ * @module     core_ai/helper
  * @copyright  2024 Huong Nguyen <huongnv13@gmail.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-export default {
-    ELEMENTS: {
-        AIDRAWER: '#ai-drawer',
-        AIDRAWER_BODY: '#ai-drawer .ai-drawer-body',
-        PAGE: '#page',
-        MAIN_REGION: '[role="main"]',
-    },
-    ACTIONS: {
-        SUMMARY: '[data-action="course-summarise"]',
-        RETRY: '[data-action="course-summarise-retry"]',
-        DECLINE: '[data-action="course-summarise-policy-decline"]',
-        ACCEPT: '.ai-policy-block [data-action="accept"]',
-        REGENERATE: '[data-action="course-summarise-regenerate"]',
-        CANCEL: '.ai-policy-block [data-action="decline"]',
+export default class AIHelper {
+    /**
+     * Replace double line breaks with <br> and with </p><p> for paragraphs.
+     * This is to handle the difference in response from the AI to what is expected by the editor.
+     *
+     * @param {String} text The text to replace.
+     * @returns {String}
+     */
+    static replaceLineBreaks(text) {
+        // Replace double line breaks with </p><p> for paragraphs
+        const textWithParagraphs = text.replace(/\n{2,}|\r\n/g, '<br/><br/>');
+
+        // Replace remaining single line breaks with <br> tags
+        const textWithBreaks = textWithParagraphs.replace(/\n/g, '<br/>');
+
+        // Add opening and closing <p> tags to wrap the entire content
+        return `<p>${textWithBreaks}</p>`;
     }
-};
+}

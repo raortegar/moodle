@@ -15,9 +15,9 @@
     along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 }}
 {{!
-    @template aiplacement_courseassist/policy
+    @template core_ai/policyblock
 
-    Template to display AI plolicy for the course assist.
+    Template to display AI policy in the block drawer.
 
     Context variables required for this template:
     * none
@@ -27,18 +27,18 @@
     }
 }}
 <section class="card mb-3">
-    <div class="card-body p-3">
+    <div class="card-body p-3 ai-policy-block">
         <h3 id="instance-9-header" class="h5 card-title d-inline">
             {{#str}} aiusagepolicy, core_ai {{/str}}
         </h3>
         <div class="card-text content mt-3">
             {{#str}} userpolicy, core_ai {{/str}}
             <div class="d-block pt-3">
-                <button class="btn btn-sm btn-secondary" data-action="course-summarise-policy-decline">
-                    {{#str}} cancelai, aiplacement_courseassist {{/str}}
+                <button class="btn btn-sm btn-secondary" data-action="decline">
+                    {{#str}} declineaipolicy, core_ai {{/str}}
                 </button>
-                <button class="btn btn-sm btn-primary" data-action="course-summarise-policy-accept">
-                    {{#str}} accept, aiplacement_courseassist {{/str}}
+                <button class="btn btn-sm btn-primary" data-action="accept">
+                    {{#str}} acceptai, core_ai {{/str}}
                 </button>
             </div>
         </div>

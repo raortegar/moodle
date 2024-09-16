@@ -81,7 +81,7 @@ class assist_ui {
         if (!get_config('aiplacement_courseassist', 'version')) {
             return false;
         }
-        if (in_array($PAGE->pagelayout, ['maintenance', 'print', 'redirect'])) {
+        if (in_array($PAGE->pagelayout, ['maintenance', 'print', 'redirect', 'embedded'])) {
             // Do not try to show assist UI inside iframe, in maintenance mode,
             // when printing, or during redirects.
             return false;
