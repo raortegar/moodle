@@ -165,9 +165,12 @@ const AICourseAssist = class {
      */
     openAIDrawer() {
         this.aiDrawerElement.classList.add('show');
+        this.aiDrawerElement.setAttribute('aria-live', 'polite');
         if (!this.pageElement.classList.contains('show-drawer-right')) {
             this.addPadding();
         }
+        // Disable the summary button.
+        this.disableSummaryButton();
     }
 
     /**
@@ -175,11 +178,12 @@ const AICourseAssist = class {
      */
     closeAIDrawer() {
         this.aiDrawerElement.classList.remove('show');
+        this.aiDrawerElement.removeAttribute('aria-live');
         if (this.pageElement.classList.contains('show-drawer-right') && this.aiDrawerBodyElement.dataset.removepadding === '1') {
             this.removePadding();
         }
-        // Focus back to the summary button.
-        document.querySelector(Selectors.ACTIONS.SUMMARY).focus();
+        // Enable the summary button.
+        this.enableSummaryButton();
     }
 
     /**
@@ -207,6 +211,27 @@ const AICourseAssist = class {
     removePadding() {
         this.pageElement.classList.remove('show-drawer-right');
         this.aiDrawerBodyElement.dataset.removepadding = '0';
+    }
+
+    /**
+     * Disable the summary button.
+     */
+    disableSummaryButton() {
+        const summaryButton = document.querySelector(Selectors.ACTIONS.SUMMARY);
+        if (summaryButton) {
+            summaryButton.setAttribute('disabled', 1);
+        }
+    }
+
+    /**
+     * Enable the summary button and focus on it.
+     */
+    enableSummaryButton() {
+        const summaryButton = document.querySelector(Selectors.ACTIONS.SUMMARY);
+        if (summaryButton) {
+            summaryButton.removeAttribute('disabled');
+            summaryButton.focus();
+        }
     }
 
     /**

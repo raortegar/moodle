@@ -27,8 +27,18 @@
     }
 }}
 <div class="ai-course-summarise-controls pt-3 pb-3">
-    <button class="btn btn-outline-secondary" data-action="course-summarise">
-        {{#pix}} sparkles, aiplacement_courseassist {{/pix}}
+    <button class="btn btn-outline-secondary"
+            data-action="course-summarise"
+            data-toggle="tooltip"
+            data-html="true"
+            title="{{#str}} summarise_tooltips, aiplacement_courseassist {{/str}}"
+    >
+        <span class="ai-course-summarise-sparkles-icon">
+            {{#pix}} sparkles, aiplacement_courseassist {{/pix}}
+        </span>
+        <span class="ai-course-summarise-sparkles-icon white">
+            {{#pix}} sparkles-white, aiplacement_courseassist {{/pix}}
+        </span>
         {{#str}} summarise, aiplacement_courseassist {{/str}}
     </button>
 </div>

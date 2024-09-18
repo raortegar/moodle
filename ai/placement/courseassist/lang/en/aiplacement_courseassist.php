@@ -31,4 +31,5 @@ $string['pluginname'] = 'Course Assistance Placement';
 $string['privacy:metadata'] = 'The Course Assistance placement plugin does not store any personal data.';
 $string['regenerate'] = 'Regenerate';
 $string['summarise'] = 'Summarise';
+$string['summarise_tooltips'] = 'Create an AI-generated summary of the page content';
 $string['tryagain'] = 'Try again';
