@@ -2330,7 +2330,7 @@ class courselib_test extends advanced_testcase {
      * Test that triggering a course_restored event works as expected.
      */
     public function test_course_restored_event(): void {
-        global $CFG;
+        global $CFG, $DB;
 
         // Get the necessary files to perform backup and restore.
         require_once($CFG->dirroot . '/backup/util/includes/backup_includes.php');
@@ -2378,6 +2378,12 @@ class courselib_test extends advanced_testcase {
         $this->assertEquals($rc->get_courseid(), $event->objectid);
         $this->assertEquals(context_course::instance($rc->get_courseid())->id, $event->contextid);
         $this->assertEventContextNotUsed($event);
+
+        // Cleared needsbackup.
+        $this->assertEquals(
+            0,
+            $DB->get_field('course', 'needsbackup', ['id' => $course->id], MUST_EXIST)
+        );
 
         // Destroy the resource controller since we are done using it.
         $rc->destroy();
@@ -7616,5 +7622,47 @@ class courselib_test extends advanced_testcase {
         \core\plugin_manager::reset_caches();
         $formats = get_sorted_course_formats();
         $this->assertContains('weeks', $formats);
+    }
+
+    /**
+     * Test setting and clearing of the course.needsbackup field.
+     * This test verifies that:
+     * - The needsbackup field remains 0 when a course is only viewed.
+     * - The needsbackup field is set to 1 after a course update or user enrollment.
+     *
+     * @covers \core_course\eventobservers
+     */
+    public function test_course_needsbackup(): void {
+        global $DB;
+        $this->resetAfterTest(true);
+        $user = $this->getDataGenerator()->create_user();
+        $course = $this->getDataGenerator()->create_course();
+
+        // Set the needsbackup value to 0 before update the course.
+        $DB->set_field('course', 'needsbackup', 0, ['id' => $course->id]);
+
+        $context = \core\context\course::instance($course->id);
+        course_view($context);
+        $this->assertEquals(
+            0,
+            $DB->get_field('course', 'needsbackup', ['id' => $course->id], MUST_EXIST)
+        );
+
+        // Update course and trigger course_updated event.
+        update_course($course);
+        $this->assertEquals(
+            1,
+            $DB->get_field('course', 'needsbackup', ['id' => $course->id], MUST_EXIST)
+        );
+
+        // Set the needsbackup value to 0 before update the course.
+        $DB->set_field('course', 'needsbackup', 0, ['id' => $course->id]);
+
+        // Enrol user and trigger user_enrolment_created event.
+        $this->getDataGenerator()->enrol_user($user->id, $course->id) || die;
+        $this->assertEquals(
+            1,
+            $DB->get_field('course', 'needsbackup', ['id' => $course->id], MUST_EXIST)
+        );
     }
 }

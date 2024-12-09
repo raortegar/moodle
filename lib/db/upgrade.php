@@ -1303,5 +1303,25 @@ function xmldb_main_upgrade($oldversion) {
         upgrade_main_savepoint(true, 2024112900.02);
     }
 
+    if ($oldversion < 2024120100.00) {
+        $table = new xmldb_table('course');
+
+        $field = new xmldb_field('needsbackup', XMLDB_TYPE_INTEGER, '1', null,
+            XMLDB_NOTNULL, null, 1, 'pdfexportfont');
+
+        // Conditionally launch add field id.
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        $index = new xmldb_index('courseneedsbackup_idx', XMLDB_INDEX_NOTUNIQUE, ['needsbackup']);
+        if (!$dbman->index_exists($table, $index)) {
+            $dbman->add_index($table, $index);
+        }
+
+        // Main savepoint reached.
+        upgrade_main_savepoint(true, 2024120100.00);
+    }
+
     return true;
 }
