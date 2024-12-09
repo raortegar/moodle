@@ -67,6 +67,8 @@ class automated_backup_test extends \advanced_testcase {
                 array('format' => 'topics', 'numsections' => 3,
                         'enablecompletion' => COMPLETION_ENABLED),
                 array('createsections' => true));
+        $this->assertEquals(1, $this->course->needsbackup);
+
         $forum = $generator->create_module('forum', array(
                 'course' => $this->course->id));
         $forum2 = $generator->create_module('forum', array(
@@ -230,6 +232,7 @@ class automated_backup_test extends \advanced_testcase {
         $course = $DB->get_record('course', array('id' => $this->course->id));
 
         $course->timemodified = time() - 2 * DAYSECS - 1;
+        $course->needsbackup = 0;
 
         $classobject = $this->backupcronautomatedhelper->return_this();
         $nextstarttime = backup_cron_automated_helper::calculate_next_automated_backup(null, time());
@@ -264,6 +267,7 @@ class automated_backup_test extends \advanced_testcase {
         $course = $DB->get_record('course', array('id' => $this->course->id));
 
         $course->timemodified = time() - 2 * DAYSECS - 1;
+        $course->needsbackup = 0;
 
         $classobject = $this->backupcronautomatedhelper->return_this();
         $nextstarttime = backup_cron_automated_helper::calculate_next_automated_backup(null, time());
@@ -337,6 +341,55 @@ class automated_backup_test extends \advanced_testcase {
 
         $this->assertStringContainsString('Automated backup for course: ' . $this->course->fullname . ' encounters an error.',
             $output);
+        // Error case: needsbackup should not be cleared if the task encounters an error.
+        $this->assertEquals(
+            1,
+            $DB->get_field('course', 'needsbackup', ['id' => $this->course->id], MUST_EXIST)
+        );
+        \core\task\manager::adhoc_task_complete($task);
+    }
+
+    /**
+     * Test successful completion of an automated backup task.
+     * This test verifies that:
+     * - The task execution completes without errors.
+     * - The needsbackup field is cleared (set to 0) after a successful task run.
+     *
+     * @covers \backup_cron_automated_helper
+     */
+    public function test_task_complete(): void {
+        global $DB;
+        $admin = get_admin();
+        $classobject = $this->backupcronautomatedhelper->return_this();
+
+        // Create this backup course.
+        $backupcourse = new \stdClass;
+        $backupcourse->courseid = $this->course->id;
+        $backupcourse->laststatus = backup_cron_automated_helper::BACKUP_STATUS_NOTYETRUN;
+        $DB->insert_record('backup_courses', $backupcourse);
+
+        // Retrieve the inserted record to ensure it's available for the test.
+        $backupcourse = $DB->get_record('backup_courses', ['courseid' => $this->course->id]);
+
+        // Create a backup task.
+        $method = new \ReflectionMethod('\backup_cron_automated_helper', 'push_course_backup_adhoc_task');
+        $method->setAccessible(true); // Allow accessing of private method.
+        $method->invokeArgs($classobject, [$backupcourse, $admin]);
+
+        $task = \core\task\manager::get_next_adhoc_task(time());
+
+        ob_start();
+        $task->execute();
+        $output = ob_get_clean();
+
+        $this->assertStringContainsString('Automated backup for course: ' . $this->course->fullname . ' completed.',
+            $output);
+
+        // Verify that the needsbackup field is cleared (set to 0) after a successful backup.
+        $this->assertEquals(
+            0,
+            $DB->get_field('course', 'needsbackup', ['id' => $this->course->id], MUST_EXIST)
+        );
         \core\task\manager::adhoc_task_complete($task);
     }
 }
