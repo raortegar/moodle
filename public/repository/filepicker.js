@@ -1632,6 +1632,8 @@ M.core_filepicker.init = function(Y, options) {
             this.active_repo.message = (data.message || '');
             this.active_repo.help = data.help?data.help:null;
             this.active_repo.manage = data.manage?data.manage:null;
+            this.active_repo.uploadfile = data.uploadfile ? data.uploadfile : null;
+            this.active_repo.uploadclass = data.uploadclass ? data.uploadclass : null;
             // Warning message related to the file reference option, if applicable to the given repository.
             this.active_repo.filereferencewarning = data.filereferencewarning ? data.filereferencewarning : null;
             this.print_header();
@@ -2003,6 +2005,62 @@ M.core_filepicker.init = function(Y, options) {
                     managelnk.simulate('click')
                 });
 
+            // Handles Upload functionality in a modal box and then refreshes File Picker on submit.
+            toolbar.one('.fp-tb-uploadfile').one('a,button').on('click', function(e) {
+                e.preventDefault();
+                var repoId = this.active_repo.id;
+                var contextId = this.options.context.id;
+                var uploadClass = this.active_repo.uploadclass;
+                require(['core_form/modalform', 'core/str'], function(ModalForm, str) {
+                    const form = new ModalForm({
+                        formClass: uploadClass,
+                        args: {
+                            client_id: client_id,
+                            contextid: contextId,
+                            repo_id: repoId
+                        },
+                        modalConfig: {
+                            title: str.get_string('upload'),
+                        }
+                    });
+
+                    // Hide the close buttons and force the full with of the filepicker.
+                    const uploadFileModal = ($fp) => {
+                        $fp.find('.fp-btn-choose').hide();
+                        $fp.find('.col-form-label').remove();
+                        $fp.find('[data-fieldtype="filepicker"]').addClass('w-100');
+                    };
+                    form.addEventListener(form.events.LOADED, () => {
+                        const hideChooseButton = () => {
+                            const $fp = form.modal.body.find('.nofilebutton');
+                            if ($fp.length > 0) {
+                                uploadFileModal($fp);
+                            } else {
+                                // try again shortly if not found
+                                setTimeout(hideChooseButton, 50);
+                            }
+                        };
+                        hideChooseButton();
+                    });
+
+                    form.addEventListener(form.events.SERVER_VALIDATION_ERROR, () => {
+                        setTimeout(() => {
+                            const $fp = form.modal.body.find('.nofilebutton');
+                            uploadFileModal($fp);
+                        }, 50);
+                    });
+
+                    // Refresh the file picker after successful upload.
+                    form.addEventListener(form.events.FORM_SUBMITTED, () => {
+                        var refreshButton = toolbar.one('.fp-tb-refresh').one('a,button');
+                        if (refreshButton) {
+                            refreshButton.simulate('click');
+                        }
+                    });
+                    form.show();
+                });
+            }, this);
+
             // same with .fp-tb-help
             var helplnk = Y.Node.create('<a/>').
                 setAttrs({id:'fp-tb-help-'+client_id+'-link', target:'_blank'}).
@@ -2078,6 +2136,9 @@ M.core_filepicker.init = function(Y, options) {
             // manage url
             enable_tb_control(toolbar.one('.fp-tb-manage'), r.manage);
             Y.one('#fp-tb-manage-'+client_id+'-link').set('href', r.manage);
+
+            // Upload file.
+            enable_tb_control(toolbar.one('.fp-tb-uploadfile'), r.uploadfile);
 
             // help url
             enable_tb_control(toolbar.one('.fp-tb-help'), r.help);

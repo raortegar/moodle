@@ -827,6 +827,7 @@ class page_requirements_manager {
                             ['renameto', 'repository'],
                             ['referencesexist', 'repository'],
                             ['select', 'repository'],
+                            ['manageurl', 'repository'],
                         ],
                     ];
                     break;
