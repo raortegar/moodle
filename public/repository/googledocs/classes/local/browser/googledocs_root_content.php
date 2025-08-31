@@ -41,7 +41,7 @@ class googledocs_root_content extends googledocs_content {
      */
     protected function get_contents(string $query): array {
         // Add 'My drive' folder into the displayed contents.
-        $contents = [
+        return [
             (object)[
                 'id' => \repository_googledocs::MY_DRIVE_ROOT_ID,
                 'name' => get_string('mydrive', 'repository_googledocs'),
@@ -49,19 +49,5 @@ class googledocs_root_content extends googledocs_content {
                 'modifiedTime' => '',
             ],
         ];
-
-        // If shared drives exists, include 'Shared drives' folder to the displayed contents.
-        $response = helper::request($this->service, 'shared_drives_list', []);
-
-        if (!empty($response->drives)) {
-            $contents[] = (object)[
-                'id' => \repository_googledocs::SHARED_DRIVES_ROOT_ID,
-                'name' => get_string('shareddrives', 'repository_googledocs'),
-                'mimeType' => 'application/vnd.google-apps.folder',
-                'modifiedTime' => '',
-            ];
-        }
-
-        return $contents;
     }
 }

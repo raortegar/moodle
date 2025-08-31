@@ -32,7 +32,7 @@ defined('MOODLE_INTERNAL') || die();
  */
 function fileconverter_googledrive_oauth2_system_scopes(\core\oauth2\issuer $issuer) {
     if ($issuer->get('id') == get_config('fileconverter_googledrive', 'issuerid')) {
-        return 'https://www.googleapis.com/auth/drive';
+        return 'https://www.googleapis.com/auth/drive.file';
     }
     return '';
 }
