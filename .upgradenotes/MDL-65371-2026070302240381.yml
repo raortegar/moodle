@@ -1,0 +1,11 @@
+issueNumber: MDL-65371
+notes:
+  mod_book:
+    - message: >-
+        The book activity now supports a "Require read percent" completion
+        condition, which marks the activity complete once a user has viewed at
+        least the configured percentage of the book's visible chapters.
+        Chapter view history is now tracked per user and is used to support
+        activity completion, resuming at the last viewed chapter, and privacy
+        export.
+      type: improved

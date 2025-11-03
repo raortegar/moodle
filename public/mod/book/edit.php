@@ -125,6 +125,9 @@ if ($mform->is_cancelled()) {
         core_tag_tag::set_item_tags('mod_book', 'book_chapters', $chapter->id, $context, $data->tags);
 
         \mod_book\event\chapter_created::create_from_chapter($book, $context, $chapter)->trigger();
+
+        // Adding a chapter changes the read percentage of every user, so recalculate the activity completion.
+        \mod_book\helper::reset_completion_state($book, $course);
     }
 
     book_preload_chapters($book); // fix structure

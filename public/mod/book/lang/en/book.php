@@ -44,6 +44,10 @@ $string['pluginadministration'] = 'Book administration';
 $string['toc'] = 'Table of contents';
 $string['chapterandsubchaptersdeleted'] = 'Chapter "{$a->title}" and its {$a->subchapters} subchapters were deleted';
 $string['chapterdeleted'] = 'Chapter "{$a->title}" was deleted';
+$string['completionreadallstatus'] = 'Read the whole book';
+$string['completionreadpercentselect'] = 'The user needs to read at least this percent of the book';
+$string['completionreadpercentstatus'] = 'Read at least {$a}% of the book';
+$string['completionreadpercentvalidation'] = 'You need to define the required read percentage';
 $string['customtitles'] = 'Custom titles';
 $string['customtitles_help'] = 'Normally the chapter title is displayed in the table of contents (TOC) AND as a heading above the content.
 
@@ -71,7 +75,11 @@ $string['indicator:socialbreadthdef_help'] = 'The participant has reached this p
 $string['indicator:socialbreadthdef_link'] = 'Learning_analytics_indicators#Social_breadth';
 $string['movechapterup'] = 'Move chapter up "{$a}"';
 $string['movechapterdown'] = 'Move chapter down "{$a}"';
-$string['privacy:metadata'] = 'The book activity module does not store any personal data.';
+$string['privacy:metadata:book_chapters_userviews'] = 'Information about book pages user view history';
+$string['privacy:metadata:book_chapters_userviews:chapterid'] = 'Chapter viewed';
+$string['privacy:metadata:book_chapters_userviews:timecreated'] = 'Time when the user first viewed the page';
+$string['privacy:metadata:book_chapters_userviews:timeviewed'] = 'Time when the user last viewed the page';
+$string['privacy:metadata:book_chapters_userviews:userid'] = 'User who viewed the page';
 $string['search:activity'] = 'Book - resource information';
 $string['search:chapter'] = 'Book - chapters';
 $string['showchapter'] = 'Show chapter "{$a}"';
@@ -109,11 +117,13 @@ $string['book:viewhiddenchapters'] = 'View hidden book chapters';
 $string['errorchapter'] = 'Error reading chapter of book.';
 
 $string['page-mod-book-x'] = 'Any book module page';
+$string['removeallbooktags'] = 'All book tags';
+$string['removeallbookviews'] = 'All book chapter view history';
+$string['requiredcompletionreadpercent'] = 'Required read percent';
 $string['subchapternotice'] = '(Only available once the first chapter has been created)';
 $string['subplugintype_booktool'] = 'Book tool';
 $string['subplugintype_booktool_plural'] = 'Book tools';
 
-$string['removeallbooktags'] = 'All book tags';
 $string['tagarea_book_chapters'] = 'Book chapters';
 
 // Deprecated since Moodle 4.5.
@@ -122,3 +132,4 @@ $string['tagsdeleted'] = 'Book tags have been deleted';
 // Deprecated since Moodle 5.3.
 $string['navnext'] = 'Next';
 $string['navprev'] = 'Previous';
+$string['privacy:metadata'] = 'The book activity module does not store any personal data.';

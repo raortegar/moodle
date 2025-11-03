@@ -89,6 +89,11 @@ if ($chapterid == '0') { // Go to first chapter if no given.
             break;
         }
     }
+
+    // If a page was not set, then set the last visited page to display if it exists and is not hidden.
+    if (!$edit && ($lastuserviewedchapterid = book_get_chapter_to_display($book->id, $chapters)) !== null) {
+        $chapterid = $lastuserviewedchapterid;
+    }
 }
 
 // Prepare header.
