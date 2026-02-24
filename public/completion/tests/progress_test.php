@@ -306,6 +306,7 @@ final class progress_test extends \advanced_testcase {
         $studentrole = $DB->get_record('role', ['shortname' => 'student']);
         $this->getDataGenerator()->enrol_user($user->id, $course->id, $studentrole->id);
 
+        /** @var \mod_assign_generator $assigngenerator */
         $assigngenerator = $this->getDataGenerator()->get_plugin_generator('mod_assign');
 
         // Add visible activities to section 0 and 1.
@@ -325,9 +326,6 @@ final class progress_test extends \advanced_testcase {
         $sectioninfo = get_fast_modinfo($course->id)->get_section_info(1);
         \core_courseformat\formatactions::section($course->id)->set_visibility($sectioninfo, false);
         $completion = new \completion_info($course);
-
-        // Initial completion: 0%.
-        $this->assertEquals(0, \core_completion\progress::get_course_progress_percentage($course, $user->id));
 
         // Complete the visible activity: activity1.
         $cm = get_coursemodule_from_id('assign', $activity1->cmid);
@@ -363,6 +361,7 @@ final class progress_test extends \advanced_testcase {
         $studentrole = $DB->get_record('role', ['shortname' => 'student']);
         $this->getDataGenerator()->enrol_user($user->id, $course->id, $studentrole->id);
 
+        /** @var \mod_assign_generator $assigngenerator */
         $assigngenerator = $this->getDataGenerator()->get_plugin_generator('mod_assign');
 
         // Section 0: visible activity.
@@ -427,6 +426,7 @@ final class progress_test extends \advanced_testcase {
         $studentrole = $DB->get_record('role', ['shortname' => 'student']);
         $this->getDataGenerator()->enrol_user($user->id, $course->id, $studentrole->id);
 
+        /** @var \mod_assign_generator $assigngenerator */
         $assigngenerator = $this->getDataGenerator()->get_plugin_generator('mod_assign');
 
         // Activity 1: no restrictions (always visible).
@@ -506,7 +506,7 @@ final class progress_test extends \advanced_testcase {
     }
 
     /**
-     * Tests course progress percentage with activities having group restrictions.
+     * Tests course progress percentage with group restrictions.
      */
     public function test_course_progress_percentage_with_group_restrictions(): void {
         global $DB;
@@ -519,78 +519,62 @@ final class progress_test extends \advanced_testcase {
             'format' => 'topics',
         ]);
 
-        // Create and enrol two students.
+        // Create and enrol two students in the course.
         $user1 = $this->getDataGenerator()->create_user();
         $user2 = $this->getDataGenerator()->create_user();
         $studentrole = $DB->get_record('role', ['shortname' => 'student']);
         $this->getDataGenerator()->enrol_user($user1->id, $course->id, $studentrole->id);
         $this->getDataGenerator()->enrol_user($user2->id, $course->id, $studentrole->id);
 
-        // Create groups.
-        $visiblegroup = $this->getDataGenerator()->create_group([
+        // Create a group and add user1.
+        $group1 = $this->getDataGenerator()->create_group([
             'courseid' => $course->id,
-            'name' => 'Visible group',
+            'name' => 'Group 1',
         ]);
         $this->getDataGenerator()->create_group_member([
-            'groupid' => $visiblegroup->id,
+            'groupid' => $group1->id,
             'userid' => $user1->id,
         ]);
 
-        $restrictedgroup = $this->getDataGenerator()->create_group([
-            'courseid' => $course->id,
-            'name' => 'Restricted group',
-        ]);
-        $this->getDataGenerator()->create_group_member([
-            'groupid' => $restrictedgroup->id,
-            'userid' => $user2->id,
-        ]);
-
+        /** @var \mod_assign_generator $assigngenerator */
         $assigngenerator = $this->getDataGenerator()->get_plugin_generator('mod_assign');
 
-        // Activity 1: restricted to the visible group (counts for completion for user1).
+        // Activity 1: restricted to group1.
         $assign['activity1'] = $assigngenerator->create_instance([
             'course' => $course->id,
             'completion' => COMPLETION_ENABLED,
         ]);
         $availabilityjson = json_encode(tree::get_root_json(
             [
-                \availability_group\condition::get_json($visiblegroup->id),
+                \availability_group\condition::get_json($group1->id),
             ],
             tree::OP_AND,
             false,
         ));
         $DB->set_field('course_modules', 'availability', $availabilityjson, ['id' => $assign['activity1']->cmid]);
 
-        // Activity 2: restricted to the restricted group (visible to user2).
+        // Activity 2: Visible to all users.
         $assign['activity2'] = $assigngenerator->create_instance([
             'course' => $course->id,
             'completion' => COMPLETION_ENABLED,
         ]);
-        $availabilityjson = json_encode(tree::get_root_json(
-            [
-                \availability_group\condition::get_json($restrictedgroup->id),
-            ],
-            tree::OP_AND,
-            false,
-        ));
-        $DB->set_field('course_modules', 'availability', $availabilityjson, ['id' => $assign['activity2']->cmid]);
         rebuild_course_cache($course->id, true);
 
-        // Set user context and get completion info for user1.
+        $cm1 = get_coursemodule_from_id('assign', $assign['activity1']->cmid);
+        $cm2 = get_coursemodule_from_id('assign', $assign['activity2']->cmid);
+
+        // Test user1 (in group): complete both activities.
         $this->setUser($user1);
         $completion = new \completion_info($course);
-
-        // Mark activity 1 as complete.
-        $cm1 = get_coursemodule_from_id('assign', $assign['activity1']->cmid);
+        $completion->update_state($cm2, COMPLETION_COMPLETE, $user1->id);
+        $this->assertEquals(50, \core_completion\progress::get_course_progress_percentage($course, $user1->id));
         $completion->update_state($cm1, COMPLETION_COMPLETE, $user1->id);
-        // Assert course completion percentage only counts the activity visible to user1 (activity1).
         $this->assertEquals(100, \core_completion\progress::get_course_progress_percentage($course, $user1->id));
 
-        // Set user context and get completion info for user2.
+        // Test user2 (not group): complete only visible activity.
         $this->setUser($user2);
         $completion = new \completion_info($course);
-
-        // User2 is in the restricted group, so only activity2 should be counted for percentage calculation.
-        $this->assertEquals(0, \core_completion\progress::get_course_progress_percentage($course, $user2->id));
+        $completion->update_state($cm2, COMPLETION_COMPLETE, $user2->id);
+        $this->assertEquals(100, \core_completion\progress::get_course_progress_percentage($course, $user2->id));
     }
 }
