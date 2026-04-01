@@ -6,7 +6,7 @@ Feature: Additional HTML footer content including multilang and scripting suppor
 
   Scenario: Admin sets additionalhtmlfooter with various elements and sees the expected result
     Given I log in as "admin"
-    And I navigate to "Plugins > Manage filters" in site administration
+    And I navigate to "Plugins > Filters > Manage filters" in site administration
     And I set the field "newstate" in the "Multi-language content" "table_row" to "On"
     And I navigate to "Appearance > Additional HTML" in site administration
     And I set the field "Before BODY is closed" to multiline:
@@ -31,5 +31,5 @@ Feature: Additional HTML footer content including multilang and scripting suppor
     # Test multi-lang filtering.
     And I should see "Hello in English"
     And I should not see "Hola en español"
-    And I click on "Show footer" "button"
+    And I should see "Bold test text" in the "page-footer" "region"
     And I should see "Bold test text" in the "strong" "css_element"
