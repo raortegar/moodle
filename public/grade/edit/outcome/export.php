@@ -73,9 +73,9 @@ foreach($outcomes as $outcome) {
     $line[] = $outcome->get_description();
 
     $scale = $outcome->load_scale();
-    $line[] = $scale->get_name();
-    $line[] = $scale->compact_items();
-    $line[] = $scale->get_description();
+    $line[] = $scale ? $scale->get_name()        : '';
+    $line[] = $scale ? $scale->compact_items()   : '';
+    $line[] = $scale ? $scale->get_description() : '';
 
     echo format_csv($line, ';', '"');
 }

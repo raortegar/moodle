@@ -134,7 +134,9 @@ if ($courseid and $outcomes = grade_outcome::fetch_all_local($courseid)) {
         $line[] = $outcome->get_shortname();
 
         $scale = $outcome->load_scale();
-        if (empty($scale->id)) {   // hopefully never happens
+        if ($scale === null) {
+            $line[] = get_string('none');
+        } else if (empty($scale->id)) {
             $line[] = $scale->get_name();
             debugging("Found a scale with no ID ({$scale->get_name()}) while outputting course outcomes", DEBUG_DEVELOPER);
         } else {
@@ -184,7 +186,9 @@ if ($outcomes = grade_outcome::fetch_all_global()) {
         $line[] = $outcome->get_shortname();
 
         $scale = $outcome->load_scale();
-        if (empty($scale->id)) {   // hopefully never happens
+        if ($scale === null) {
+            $line[] = get_string('none');
+        } else if (empty($scale->id)) {
             $line[] = $scale->get_name();
             debugging("Found a scale with no ID ({$scale->get_name()}) while outputting global outcomes", DEBUG_DEVELOPER);
         } else {
