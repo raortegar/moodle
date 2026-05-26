@@ -1866,5 +1866,84 @@ function xmldb_main_upgrade($oldversion) {
     // Automatically generated Moodle v5.2.0 release upgrade line.
     // Put any upgrade step following this.
 
+    if ($oldversion < 2026052600.01) {
+        // Define table course_outcome_tags to be created.
+        $table = new xmldb_table('course_outcome_tags');
+
+        // Adding fields to table course_outcome_tags.
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $table->add_field('courseid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('cmid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('outcomeid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('usermodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('timemodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+
+        // Adding keys to table course_outcome_tags.
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+        $table->add_key('courseid', XMLDB_KEY_FOREIGN, ['courseid'], 'course', ['id']);
+        $table->add_key('cmid', XMLDB_KEY_FOREIGN, ['cmid'], 'course_modules', ['id']);
+        $table->add_key('outcomeid', XMLDB_KEY_FOREIGN, ['outcomeid'], 'grade_outcomes', ['id']);
+        $table->add_key('usermodified', XMLDB_KEY_FOREIGN, ['usermodified'], 'user', ['id']);
+
+        // Adding indexes to table course_outcome_tags.
+        $table->add_index('cmid-outcomeid', XMLDB_INDEX_UNIQUE, ['cmid', 'outcomeid']);
+        $table->add_index('courseid-outcomeid', XMLDB_INDEX_NOTUNIQUE, ['courseid', 'outcomeid']);
+
+        // Conditionally launch create table for course_outcome_tags.
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        // Main savepoint reached.
+        upgrade_main_savepoint(true, 2026052600.01);
+    }
+
+    if ($oldversion < 2026052600.02) {
+        // Disable the outcomes feature on sites that enabled it but never created
+        // any outcome data. Leaving it on for unused sites clutters the gradebook UI
+        // and confuses teachers who did not intentionally turn it on.
+        // Sites that have at least one outcome row, or at least one grade item linked
+        // to an outcome, are considered to have meaningful data and are left unchanged.
+        if (get_config('core', 'enableoutcomes')) {
+            $hasoutcomes  = $DB->record_exists('grade_outcomes', []);
+            $hasgradeditems = $DB->record_exists_select(
+                'grade_items',
+                'outcomeid IS NOT NULL'
+            );
+            if (!$hasoutcomes && !$hasgradeditems) {
+                set_config('enableoutcomes', 0);
+            }
+        }
+
+        // Main savepoint reached.
+        upgrade_main_savepoint(true, 2026052600.02);
+    }
+
+    if ($oldversion < 2026052600.03) {
+        // Define table course_learning_outcomes_config to be created.
+        $table = new xmldb_table('course_learning_outcomes_config');
+
+        // Adding fields to table course_learning_outcomes_config.
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $table->add_field('courseid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('enabled', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('timemodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_field('usermodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+
+        // Adding keys to table course_learning_outcomes_config.
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+        $table->add_key('courseid', XMLDB_KEY_FOREIGN_UNIQUE, ['courseid'], 'course', ['id']);
+        $table->add_key('usermodified', XMLDB_KEY_FOREIGN, ['usermodified'], 'user', ['id']);
+
+        // Conditionally launch create table for course_learning_outcomes_config.
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        // Main savepoint reached.
+        upgrade_main_savepoint(true, 2026052600.03);
+    }
+
     return true;
 }
