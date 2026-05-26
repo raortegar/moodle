@@ -494,6 +494,7 @@ $string['learningoutcomes_enforcement_help'] = 'Hard mode prevents a course from
 $string['learningoutcomes_enforcement_soft'] = 'Soft (warn but allow)';
 $string['learningoutcomes_minoutcomes'] = 'Minimum learning outcomes per course';
 $string['learningoutcomes_minoutcomes_help'] = 'The minimum number of learning outcomes a course should define. Set to 0 to disable the minimum check entirely.';
+$string['learningoutcomes_tagactivity'] = 'Align to learning outcomes';
 $string['manageoutcomes'] = 'Manage learning outcomes';
 $string['managepenaltyplugins'] = 'Manage penalty plugins';
 $string['manualitem'] = 'Manual item';

@@ -501,6 +501,19 @@ abstract class moodleform_mod extends moodleform {
      *
      * @return bool|null
      */
+    /**
+     * Returns true when this activity module is considered decorative (non-assessable).
+     *
+     * Decorative modules (labels, pages, URLs, etc.) are not expected to directly
+     * support a learning outcome and are excluded from alignment report warnings.
+     *
+     * @return bool
+     */
+    protected function is_decorative_module(): bool {
+        $manager = new \core\learning_outcomes\manager();
+        return $manager->is_decorative($this->_modname);
+    }
+
     protected function standard_coursemodule_elements() {
         global $COURSE, $CFG, $DB, $OUTPUT;
         $mform =& $this->_form;
@@ -512,6 +525,27 @@ abstract class moodleform_mod extends moodleform {
                 $mform->addElement('header', 'modoutcomes', get_string('outcomes', 'grades'));
                 foreach($outcomes as $outcome) {
                     $mform->addElement('advcheckbox', 'outcome_'.$outcome->id, $outcome->get_name());
+                }
+            }
+        }
+
+        if (!empty($CFG->enableoutcomes) && !$this->is_decorative_module()) {
+            $lomanager = new \core\learning_outcomes\manager();
+            if ($lomanager->is_enabled_for_course($COURSE->id)) {
+                $courseoutcomes = $lomanager->get_course_outcomes($COURSE->id);
+                if (!empty($courseoutcomes)) {
+                    $options = [];
+                    foreach ($courseoutcomes as $lo) {
+                        $options[$lo->id] = format_string($lo->shortname) . ' — ' . format_string($lo->fullname);
+                    }
+                    $mform->addElement('header', 'learningoutcomestags',
+                        get_string('learningoutcomes_tagactivity', 'grades'));
+                    $mform->addElement('autocomplete', 'learningoutcomes', '',
+                        $options, ['multiple' => true, 'noselectionstring' => get_string('none')]);
+                    if (!empty($this->_cm->id)) {
+                        $tagged = $lomanager->get_tagged_outcomes($this->_cm->id);
+                        $mform->setDefault('learningoutcomes', array_column($tagged, 'id'));
+                    }
                 }
             }
         }

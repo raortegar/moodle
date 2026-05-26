@@ -378,4 +378,70 @@ class manager {
             : 'learningoutcomes_belowminimum';
         return get_string($strkey, 'grades', (object) ['min' => $nudge['min'], 'count' => $nudge['count']]);
     }
+
+    // =========================================================================
+    // Layer 3 — Alignment tools
+    // =========================================================================
+
+    /**
+     * Returns the list of module names that are considered decorative (non-assessable).
+     *
+     * Decorative activities do not contribute to learning outcomes and are
+     * excluded from "untagged activities" warnings in the alignment report.
+     *
+     * @return string[]
+     */
+    public function get_decorative_modules(): array {
+        return ['label', 'page', 'url', 'folder', 'resource', 'book', 'imscp', 'subsection'];
+    }
+
+    /**
+     * Returns true when the given module type is considered decorative (non-assessable).
+     *
+     * @param string $modname Module name, e.g. 'assign', 'label'.
+     * @return bool
+     */
+    public function is_decorative(string $modname): bool {
+        return in_array($modname, $this->get_decorative_modules(), true);
+    }
+
+    /**
+     * Returns alignment data for a course: which outcomes have no activities and which
+     * assessable activities have no outcomes.
+     *
+     * @param int $courseid
+     * @return array{untagged_outcomes: \stdClass[], untagged_activities: \stdClass[]}
+     */
+    public function get_alignment_report(int $courseid): array {
+        global $DB;
+
+        $sql = 'SELECT go.id, go.shortname, go.fullname
+                  FROM {grade_outcomes} go
+                 WHERE go.courseid = :courseid
+                   AND NOT EXISTS (
+                       SELECT 1 FROM {course_outcome_tags} cot WHERE cot.outcomeid = go.id
+                   )
+                 ORDER BY go.shortname';
+        $untaggedoutcomes = array_values($DB->get_records_sql($sql, ['courseid' => $courseid]));
+
+        $decorative = $this->get_decorative_modules();
+        [$notinsql, $notinparams] = $DB->get_in_or_equal($decorative, SQL_PARAMS_NAMED, 'dec', false);
+        $sql = "SELECT cm.id, cm.module, cm.instance, m.name AS modname
+                  FROM {course_modules} cm
+                  JOIN {modules} m ON m.id = cm.module
+                 WHERE cm.course = :courseid
+                   AND cm.deletioninprogress = 0
+                   AND m.name $notinsql
+                   AND NOT EXISTS (
+                       SELECT 1 FROM {course_outcome_tags} cot WHERE cot.cmid = cm.id
+                   )
+                 ORDER BY cm.id";
+        $params = array_merge(['courseid' => $courseid], $notinparams);
+        $untaggedactivities = array_values($DB->get_records_sql($sql, $params));
+
+        return [
+            'untagged_outcomes'   => $untaggedoutcomes,
+            'untagged_activities' => $untaggedactivities,
+        ];
+    }
 }
