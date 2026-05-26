@@ -137,7 +137,8 @@ foreach ($report_info as $outcomeid => $outcomedata) {
     $sitewide_html = '<td class="cell c2" rowspan="' . $rowspan . '">' . $sitewide . "</td>\n";
 
     $outcomedata['outcome']->sum = 0;
-    $scale = new grade_scale(array('id' => $outcomedata['outcome']->scaleid), false);
+    $scaleid = $outcomedata['outcome']->scaleid ?? null;
+    $scale = (!empty($scaleid)) ? new grade_scale(array('id' => $scaleid), false) : null;
 
     $print_tr = false;
     $items_html = '';
@@ -159,7 +160,7 @@ foreach ($report_info as $outcomeid => $outcomedata) {
             }
 
             $outcomedata['outcome']->sum += $item->avg;
-            $gradehtml = $scale->get_nearest_item($item->avg);
+            $gradehtml = ($scale !== null) ? $scale->get_nearest_item($item->avg) : round($item->avg, 2);
 
             $items_html .= "<td class=\"cell c3\">$itemname</td>"
                          . "<td class=\"cell c4\">$gradehtml ($item->avg)</td>"

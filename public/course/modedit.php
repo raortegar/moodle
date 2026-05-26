@@ -192,24 +192,6 @@ if ($mform->is_cancelled()) {
         throw new \moodle_exception('invaliddata');
     }
 
-    if (!empty($CFG->enableoutcomes)) {
-        $lomanager = new \core\learning_outcomes\manager();
-        if ($lomanager->is_enabled_for_course($course->id) && !$lomanager->is_decorative($fromform->modulename)) {
-            $cmid   = $fromform->coursemodule;
-            $newids = !empty($fromform->learningoutcomes)
-                ? array_map('intval', (array) $fromform->learningoutcomes)
-                : [];
-            foreach ($lomanager->get_tagged_outcomes($cmid) as $existing) {
-                if (!in_array((int) $existing->id, $newids)) {
-                    $lomanager->untag_outcome($cmid, (int) $existing->id);
-                }
-            }
-            foreach ($newids as $outcomeid) {
-                $lomanager->tag_outcome($cmid, $outcomeid, $course->id);
-            }
-        }
-    }
-
     if (isset($fromform->submitbutton)) {
         $url = new moodle_url("/mod/$module->name/view.php", array('id' => $fromform->coursemodule, 'forceview' => 1));
         if (!empty($fromform->showgradingmanagement)) {

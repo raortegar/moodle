@@ -98,6 +98,12 @@ class grade_outcome extends grade_object {
     public $descriptionformat = FORMAT_MOODLE;
 
     /**
+     * Temporary accumulator used by the outcomes grade report.
+     * @var float $sum
+     */
+    public $sum = 0;
+
+    /**
      * Deletes this outcome from the database.
      *
      * @param string $source from where was the object deleted (mod/forum, manual, etc.)
