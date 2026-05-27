@@ -83,13 +83,21 @@ class manager {
     public function get_tagged_outcomes(int $cmid): array {
         global $DB;
 
-        $sql = 'SELECT go.*, cot.timecreated AS tagcreated, cot.timemodified AS tagmodified
-                  FROM {course_outcome_tags} cot
-                  JOIN {grade_outcomes} go ON go.id = cot.outcomeid
-                 WHERE cot.cmid = :cmid
+        // Read from core grade_items, which is where Moodle stores activity-outcome
+        // associations when teachers use the standard "Learning outcomes" checkboxes
+        // on the activity edit form.
+        $sql = 'SELECT go.*
+                  FROM {grade_items} gi
+                  JOIN {grade_outcomes} go ON go.id = gi.outcomeid
+                  JOIN {course_modules} cm ON cm.instance = gi.iteminstance
+                                          AND cm.course  = gi.courseid
+                  JOIN {modules} m ON m.id = cm.module AND m.name = gi.itemmodule
+                 WHERE cm.id = :cmid
+                   AND gi.itemtype = :itemtype
+                   AND gi.outcomeid IS NOT NULL
               ORDER BY go.shortname';
 
-        return array_values($DB->get_records_sql($sql, ['cmid' => $cmid]));
+        return array_values($DB->get_records_sql($sql, ['cmid' => $cmid, 'itemtype' => 'mod']));
     }
 
     /**
@@ -105,16 +113,20 @@ class manager {
     public function get_activities_for_outcome(int $outcomeid, int $courseid): array {
         global $DB;
 
-        $sql = 'SELECT cm.*, cot.timecreated AS tagcreated, cot.timemodified AS tagmodified
-                  FROM {course_outcome_tags} cot
-                  JOIN {course_modules} cm ON cm.id = cot.cmid
-                 WHERE cot.outcomeid = :outcomeid
-                   AND cot.courseid  = :courseid
+        $sql = 'SELECT cm.*
+                  FROM {grade_items} gi
+                  JOIN {course_modules} cm ON cm.instance = gi.iteminstance
+                                          AND cm.course  = gi.courseid
+                  JOIN {modules} m ON m.id = cm.module AND m.name = gi.itemmodule
+                 WHERE gi.outcomeid = :outcomeid
+                   AND gi.courseid  = :courseid
+                   AND gi.itemtype  = :itemtype
               ORDER BY cm.id';
 
         return array_values($DB->get_records_sql($sql, [
             'outcomeid' => $outcomeid,
             'courseid'  => $courseid,
+            'itemtype'  => 'mod',
         ]));
     }
 

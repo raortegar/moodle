@@ -40,6 +40,13 @@ $callbacks = [
         'hook'     => \core_course\hook\after_form_submission::class,
         'callback' => \report_learningoutcomes\hook_listener::class . '::save_form_data',
     ],
+    // Inject outcome shortname badges into each activity's afterlink on course
+    // pages — pure PHP, no JavaScript. Fires in $OUTPUT->header() before the
+    // course content is rendered; modifies cm_info objects in the static cache.
+    [
+        'hook'     => \core\hook\output\before_standard_top_of_body_html_generation::class,
+        'callback' => \report_learningoutcomes\hook_listener::class . '::inject_course_page_labels',
+    ],
     // Inject outcomes card on course pages and badges on activity pages (Layer 4).
     [
         'hook'     => \core\hook\output\after_standard_main_region_html_generation::class,

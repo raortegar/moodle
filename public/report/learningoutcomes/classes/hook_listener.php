@@ -20,6 +20,7 @@ use core_course\hook\after_form_definition;
 use core_course\hook\after_form_definition_after_data;
 use core_course\hook\after_form_submission;
 use core\hook\output\after_standard_main_region_html_generation;
+use core\hook\output\before_standard_top_of_body_html_generation;
 
 /**
  * Hook listener for the Learning Outcomes course-edit form integration.
@@ -139,25 +140,10 @@ class hook_listener {
 
         $page = $PAGE;
 
-        // ── Course page ──────────────────────────────────────────────────────
-        if (strpos($page->pagetype, 'course-view-') === 0) {
-            $courseid = (int) $page->course->id;
-            if ($courseid <= SITEID) {
-                return;
-            }
-            $manager = new \core\learning_outcomes\manager();
-            if (!$manager->is_enabled_for_course($courseid)) {
-                return;
-            }
-            $outcomes = $manager->get_course_outcomes($courseid);
-            if (empty($outcomes)) {
-                return;
-            }
-            $hook->add_html(self::render_course_card($outcomes));
-            return;
-        }
-
-        // ── Activity page ────────────────────────────────────────────────────
+        // ── Activity page — outcome badge strip ──────────────────────────────
+        // Course-page activity labels are handled in inject_course_page_labels()
+        // via before_standard_top_of_body_html_generation, which fires before the
+        // course content is rendered and sets afterlink on each cm_info object.
         if (strpos($page->pagetype, 'mod-') === 0) {
             $courseid = (int) $page->course->id;
             $manager  = new \core\learning_outcomes\manager();
@@ -177,41 +163,116 @@ class hook_listener {
     }
 
     /**
-     * Renders the learning outcomes card for the course page.
+     * Injects outcome shortname badges on each activity card on the course page.
      *
-     * Uses Moodle's standard output API (box/heading) so the markup is
-     * theme-aware and RTL-safe.
+     * Fires via {@see \core\hook\output\before_standard_top_of_body_html_generation}
+     * inside $OUTPUT->header(), before the course content is rendered.
+     * Calls cm_info::set_after_link() on the statically-cached cm_info objects so
+     * that the course format output class picks them up naturally via
+     * $data->afterlink = $this->mod->afterlink in its export_for_template().
      *
-     * @param \stdClass[] $outcomes Rows from grade_outcomes.
-     * @return string HTML fragment.
+     * @param before_standard_top_of_body_html_generation $hook
      */
-    private static function render_course_card(array $outcomes): string {
-        global $OUTPUT;
+    public static function inject_course_page_labels(
+        before_standard_top_of_body_html_generation $hook
+    ): void {
+        global $CFG, $DB, $PAGE;
 
-        $heading = get_string('courseoutcomes_heading', 'report_learningoutcomes');
-        $intro   = get_string('courseoutcomes_intro',   'report_learningoutcomes');
-
-        $items = '';
-        foreach ($outcomes as $outcome) {
-            $badge = \html_writer::tag(
-                'span',
-                format_string($outcome->shortname),
-                ['class' => 'badge bg-primary me-2 flex-shrink-0']
-            );
-            $items .= \html_writer::tag(
-                'li',
-                $badge . format_string($outcome->fullname),
-                ['class' => 'list-group-item d-flex align-items-center px-0 border-0']
-            );
+        if (empty($CFG->enableoutcomes)) {
+            return;
         }
 
-        $content = \html_writer::tag('p', format_string($intro), ['class' => 'text-muted small mb-2'])
-                 . \html_writer::tag('ul', $items, ['class' => 'list-group list-group-flush']);
+        if (strpos($PAGE->pagetype, 'course-view-') !== 0) {
+            return;
+        }
 
-        return $OUTPUT->box(
-            $OUTPUT->heading($heading, 3, 'h5 mb-3') . $content,
-            'generalbox learningoutcomes-card mb-3'
+        $courseid = (int) $PAGE->course->id;
+        if ($courseid <= SITEID) {
+            return;
+        }
+
+        $manager = new \core\learning_outcomes\manager();
+        if (!$manager->is_enabled_for_course($courseid)) {
+            return;
+        }
+
+        // One query: cmid → [{shortname, fullname}, …] for every activity with
+        // an outcome assigned via the standard activity edit form checkboxes.
+        $tagset = $DB->get_recordset_sql(
+            'SELECT cm.id AS cmid, go.shortname, go.fullname
+               FROM {grade_items} gi
+               JOIN {grade_outcomes} go ON go.id = gi.outcomeid
+               JOIN {course_modules} cm ON cm.instance = gi.iteminstance
+                                       AND cm.course   = gi.courseid
+               JOIN {modules} m ON m.id = cm.module AND m.name = gi.itemmodule
+              WHERE gi.courseid = :courseid
+                AND gi.itemtype = :itemtype
+                AND gi.outcomeid IS NOT NULL
+           ORDER BY cm.id, go.shortname',
+            ['courseid' => $courseid, 'itemtype' => 'mod']
         );
+        $byactivity = [];
+        foreach ($tagset as $row) {
+            $byactivity[$row->cmid][] = (object) [
+                'shortname' => $row->shortname,
+                'fullname'  => $row->fullname,
+            ];
+        }
+        $tagset->close();
+
+        if (empty($byactivity)) {
+            return;
+        }
+
+        // Get the cached modinfo object (created once per request).
+        // We modify the cm_info objects in place; the course format output class
+        // reads $cm->afterlink during export_for_template(), so modifications
+        // here are reflected in the rendered HTML without any JavaScript.
+        $modinfo = get_fast_modinfo($courseid);
+        $allcms  = $modinfo->get_cms();
+
+        // Translatable prefix shown to screen readers and in the tooltip.
+        $outcomestr = get_string('outcome', 'grades');
+
+        foreach ($byactivity as $cmid => $outcomes) {
+            if (!array_key_exists($cmid, $allcms)) {
+                continue;
+            }
+            $cm = $allcms[$cmid];
+
+            // Read $cm->afterlink first so that the module's own cm_info_view
+            // callback runs (obtain_view_data) before we append our badges.
+            $existing = $cm->afterlink;
+
+            $badges = '';
+            foreach ($outcomes as $outcome) {
+                $shortname = format_string($outcome->shortname);
+                $fullname  = format_string($outcome->fullname);
+                // Pill badge: shortname visible, full name in tooltip + aria-label.
+                $badges .= \html_writer::tag(
+                    'span',
+                    $shortname,
+                    [
+                        'class'      => 'lo-outcome-badge badge rounded-pill bg-primary text-white me-1',
+                        'title'      => $fullname,
+                        'aria-label' => $outcomestr . ': ' . $fullname,
+                        'role'       => 'note',
+                    ]
+                );
+            }
+
+            // Wrap all badges in a labelled container for screen readers.
+            $wrapper = \html_writer::tag(
+                'span',
+                $badges,
+                [
+                    'class'      => 'lo-outcome-labels ms-1',
+                    'aria-label' => get_string('learningoutcomes', 'report_learningoutcomes'),
+                ]
+            );
+
+            $cm->set_after_link($existing . $wrapper);
+        }
     }
 
     /**

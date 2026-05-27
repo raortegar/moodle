@@ -1,0 +1,19 @@
+/**
+ * Styles for the learning outcomes outcome labels injected on the course page.
+ *
+ * @package   report_learningoutcomes
+ * @copyright 2026 Moodle HQ
+ * @license   https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+.lo-outcome-labels {
+    margin-top: 0.25rem;
+    line-height: 1.8;
+}
+
+.lo-outcome-badge {
+    font-size: 0.7em;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    cursor: help; /* signals to mouse users that a tooltip is available */
+}
