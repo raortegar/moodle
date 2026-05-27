@@ -196,20 +196,14 @@ class hook_listener {
             return;
         }
 
-        // One query: cmid → [{shortname, fullname}, …] for every activity with
-        // an outcome assigned via the standard activity edit form checkboxes.
+        // One query: cmid → [{shortname, fullname}, …] for every tagged activity.
         $tagset = $DB->get_recordset_sql(
-            'SELECT cm.id AS cmid, go.shortname, go.fullname
-               FROM {grade_items} gi
-               JOIN {grade_outcomes} go ON go.id = gi.outcomeid
-               JOIN {course_modules} cm ON cm.instance = gi.iteminstance
-                                       AND cm.course   = gi.courseid
-               JOIN {modules} m ON m.id = cm.module AND m.name = gi.itemmodule
-              WHERE gi.courseid = :courseid
-                AND gi.itemtype = :itemtype
-                AND gi.outcomeid IS NOT NULL
-           ORDER BY cm.id, go.shortname',
-            ['courseid' => $courseid, 'itemtype' => 'mod']
+            'SELECT cot.cmid, go.shortname, go.fullname
+               FROM {course_outcome_tags} cot
+               JOIN {grade_outcomes} go ON go.id = cot.outcomeid
+              WHERE cot.courseid = :courseid
+           ORDER BY cot.cmid, go.shortname',
+            ['courseid' => $courseid]
         );
         $byactivity = [];
         foreach ($tagset as $row) {
@@ -305,5 +299,55 @@ class hook_listener {
                  . $badges;
 
         return $OUTPUT->notification($message, \core\output\notification::NOTIFY_INFO, false);
+    }
+
+    /**
+     * Adds the "Manage learning outcomes" link directly to the courseadmin settings node so it
+     * appears in the course secondary navigation "More" dropdown (not nested under Reports).
+     *
+     * @param \core\hook\navigation\secondary_extend $hook
+     */
+    public static function extend_secondary_nav(\core\hook\navigation\secondary_extend $hook): void {
+        global $CFG, $PAGE;
+
+        if (empty($CFG->enableoutcomes)) {
+            error_log("LO NAV: blocked by enableoutcomes=OFF");
+            return;
+        }
+
+        // Only on real course pages (not the site front page).
+        // Note: empty() cannot be used on magic properties (no __isset()), so access directly.
+        if (!$PAGE->course || $PAGE->course->id == SITEID) {
+            error_log("LO NAV: blocked by course check - courseid=" . ($PAGE->course->id ?? 'null'));
+            return;
+        }
+
+        $context = \context_course::instance($PAGE->course->id);
+        if (!has_capability('report/learningoutcomes:manage', $context)) {
+            error_log("LO NAV: blocked by capability - courseid=" . $PAGE->course->id);
+            return;
+        }
+
+        $manager = new \core\learning_outcomes\manager();
+        if (!$manager->is_enabled_for_course((int) $PAGE->course->id)) {
+            error_log("LO NAV: blocked by is_enabled - courseid=" . $PAGE->course->id);
+            return;
+        }
+
+        error_log("LO NAV: adding lo_manage node for course " . $PAGE->course->id);
+
+        // Add the node directly to the secondary navigation view.
+        // force_nodes_into_more_menu() runs in initialise() immediately after this hook fires,
+        // so our node — appended last and beyond MAX_DISPLAYED_NAV_NODES (5) — gets marked
+        // forceintomoremenu=true and appears in the "More" dropdown.
+        $url = new \moodle_url('/report/learningoutcomes/manage.php', ['id' => $PAGE->course->id]);
+        $hook->get_secondaryview()->add(
+            get_string('manage_linkinnav', 'report_learningoutcomes'),
+            $url,
+            \navigation_node::TYPE_SETTING,
+            null,
+            'lo_manage',
+            new \pix_icon('i/outcomes', '')
+        );
     }
 }

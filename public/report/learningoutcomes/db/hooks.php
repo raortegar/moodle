@@ -52,4 +52,9 @@ $callbacks = [
         'hook'     => \core\hook\output\after_standard_main_region_html_generation::class,
         'callback' => \report_learningoutcomes\hook_listener::class . '::inject_student_surfaces',
     ],
+    // Add "Manage learning outcomes" directly to the course More dropdown (not nested under Reports).
+    [
+        'hook'     => \core\hook\navigation\secondary_extend::class,
+        'callback' => \report_learningoutcomes\hook_listener::class . '::extend_secondary_nav',
+    ],
 ];

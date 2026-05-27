@@ -24,7 +24,7 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version   = 2026052600;
+$plugin->version   = 2026052701;
 $plugin->requires  = 2026041000;
 $plugin->component = 'report_learningoutcomes';
 $plugin->maturity  = MATURITY_ALPHA;
