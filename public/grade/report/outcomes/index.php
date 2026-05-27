@@ -179,7 +179,8 @@ foreach ($report_info as $outcomeid => $outcomedata) {
         } else {
             $avg = $outcomedata['outcome']->sum;
         }
-        $avg_html = $scale->get_nearest_item($avg) . " (" . round($avg, 2) . ")\n";
+        $grade_display = ($scale !== null) ? $scale->get_nearest_item($avg) : round($avg, 2);
+        $avg_html = $grade_display . " (" . round($avg, 2) . ")\n";
     } else {
         $avg_html = ' - ';
     }

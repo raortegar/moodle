@@ -25,7 +25,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 $string['activityname']              = 'Activity name';
+$string['activityoutcomes_heading']  = 'This activity addresses';
 $string['activitytype']              = 'Activity type';
+$string['courseoutcomes_heading']    = 'Learning outcomes';
+$string['courseoutcomes_intro']      = 'By the end of this course, you will be able to:';
 $string['noassessableactivities']    = 'All assessable activities are aligned to at least one learning outcome.';
 $string['nountaggedoutcomes']        = 'All learning outcomes have at least one activity aligned to them.';
 $string['outcomesfullname']          = 'Full name';

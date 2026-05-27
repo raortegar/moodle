@@ -40,4 +40,9 @@ $callbacks = [
         'hook'     => \core_course\hook\after_form_submission::class,
         'callback' => \report_learningoutcomes\hook_listener::class . '::save_form_data',
     ],
+    // Inject outcomes card on course pages and badges on activity pages (Layer 4).
+    [
+        'hook'     => \core\hook\output\after_standard_main_region_html_generation::class,
+        'callback' => \report_learningoutcomes\hook_listener::class . '::inject_student_surfaces',
+    ],
 ];

@@ -480,6 +480,7 @@ $string['locked_help'] = 'If ticked, grades can no longer be automatically updat
 $string['locktime'] = 'Lock after';
 $string['lowest'] = 'Lowest';
 $string['lowgradeletter'] = 'Low';
+$string['learningoutcomes'] = 'Learning outcomes';
 $string['learningoutcomes_belowminimum'] = 'This course has {$a->count} learning outcome(s). At least {$a->min} are recommended.';
 $string['learningoutcomes_belowminimum_hard'] = 'This course must have at least {$a->min} learning outcome(s) before it can be made visible. Currently defined: {$a->count}.';
 $string['learningoutcomes_bulkcreate_error'] = 'Line {$a->line} is not in the expected format "Shortname | Full description" and was skipped.';

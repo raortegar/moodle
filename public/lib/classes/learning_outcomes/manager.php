@@ -174,7 +174,16 @@ class manager {
      */
     public function get_course_outcomes(int $courseid): array {
         global $DB;
-        return array_values($DB->get_records('grade_outcomes', ['courseid' => $courseid], 'shortname'));
+        // Include both course-specific outcomes (courseid=N) and site-wide outcomes
+        // (courseid=0) that have been explicitly linked to this course via grade_outcomes_courses.
+        $sql = 'SELECT DISTINCT go.*
+                  FROM {grade_outcomes} go
+                 WHERE go.courseid = :cid1
+                    OR go.id IN (
+                        SELECT outcomeid FROM {grade_outcomes_courses} WHERE courseid = :cid2
+                    )
+                 ORDER BY go.shortname';
+        return array_values($DB->get_records_sql($sql, ['cid1' => $courseid, 'cid2' => $courseid]));
     }
 
     /**
@@ -415,14 +424,18 @@ class manager {
     public function get_alignment_report(int $courseid): array {
         global $DB;
 
-        $sql = 'SELECT go.id, go.shortname, go.fullname
+        // Same broad scope as get_course_outcomes — include both course-specific and linked site-wide outcomes.
+        $sql = 'SELECT DISTINCT go.id, go.shortname, go.fullname
                   FROM {grade_outcomes} go
-                 WHERE go.courseid = :courseid
+                 WHERE (go.courseid = :cid1
+                    OR go.id IN (
+                        SELECT outcomeid FROM {grade_outcomes_courses} WHERE courseid = :cid2
+                    ))
                    AND NOT EXISTS (
                        SELECT 1 FROM {course_outcome_tags} cot WHERE cot.outcomeid = go.id
                    )
                  ORDER BY go.shortname';
-        $untaggedoutcomes = array_values($DB->get_records_sql($sql, ['courseid' => $courseid]));
+        $untaggedoutcomes = array_values($DB->get_records_sql($sql, ['cid1' => $courseid, 'cid2' => $courseid]));
 
         $decorative = $this->get_decorative_modules();
         [$notinsql, $notinparams] = $DB->get_in_or_equal($decorative, SQL_PARAMS_NAMED, 'dec', false);
