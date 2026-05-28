@@ -102,6 +102,20 @@ if ($canmanage) {
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('manage_heading', 'report_learningoutcomes'), 2);
 
+// Link to the gradebook outcomes page so teachers can add/edit/delete outcomes.
+if ($canmanage) {
+    $gradeoutcomesurl = new moodle_url('/grade/edit/outcome/index.php', ['id' => $courseid]);
+    echo html_writer::tag(
+        'p',
+        $OUTPUT->pix_icon('i/outcomes', '', 'moodle', ['class' => 'me-1']) .
+        html_writer::link(
+            $gradeoutcomesurl,
+            get_string('manage_grade_outcomes_link', 'report_learningoutcomes')
+        ),
+        ['class' => 'mb-3 small']
+    );
+}
+
 foreach ($outcomes as $outcome) {
     $outcomeid  = (int) $outcome->id;
     $taggedcms  = $manager->get_activities_for_outcome($outcomeid, $courseid);

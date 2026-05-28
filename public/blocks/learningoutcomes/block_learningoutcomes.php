@@ -160,6 +160,16 @@ class block_learningoutcomes extends block_base {
                 ['class' => 'sub-content']
             );
 
+        // Footer link for teachers — quick access to the manage page.
+        if (has_capability('report/learningoutcomes:manage', context_course::instance($courseid))) {
+            $manageurl = new moodle_url('/report/learningoutcomes/manage.php', ['id' => $courseid]);
+            $this->content->footer = html_writer::link(
+                $manageurl,
+                get_string('manage_linkinnav', 'report_learningoutcomes'),
+                ['class' => 'small']
+            );
+        }
+
         return $this->content;
     }
 }

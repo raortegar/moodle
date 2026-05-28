@@ -49,5 +49,5 @@ $string['pluginname']                = 'Learning outcomes alignment';
 $string['reportheading_activities']  = 'Assessable activities without a learning outcome';
 $string['reportheading_outcomes']    = 'Learning outcomes without an activity';
 $string['reportintro']               = 'This report helps you identify gaps in your course\'s constructive alignment.';
-$string['reportnotavailable']        = 'Learning outcomes are not enabled for this course.';
+$string['manage_grade_outcomes_link'] = 'Add or edit outcomes in the gradebook';
 $string['reportnotavailable']        = 'Learning outcomes are not enabled for this course.';
