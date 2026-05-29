@@ -40,9 +40,12 @@ $canmanage = has_capability('report/learningoutcomes:manage', $context);
 
 $PAGE->set_url('/report/learningoutcomes/manage.php', ['id' => $courseid]);
 $PAGE->set_pagelayout('incourse');
-$PAGE->set_title(get_string('manage_pagetitle', 'report_learningoutcomes'));
+$pagetitle = $canmanage
+    ? get_string('manage_pagetitle', 'report_learningoutcomes')
+    : get_string('learningoutcomes', 'report_learningoutcomes');
+$PAGE->set_title($pagetitle);
 $PAGE->set_heading(format_string($course->fullname));
-$PAGE->navbar->add(get_string('manage_pagetitle', 'report_learningoutcomes'));
+$PAGE->navbar->add($pagetitle);
 
 $manager = new \core\learning_outcomes\manager();
 
@@ -60,12 +63,14 @@ $outcomes = $manager->get_course_outcomes($courseid);
 
 if (empty($outcomes)) {
     echo $OUTPUT->header();
-    echo $OUTPUT->heading(get_string('manage_heading', 'report_learningoutcomes'), 2);
-    echo html_writer::tag(
-        'p',
-        get_string('manage_pagedesc', 'report_learningoutcomes'),
-        ['class' => 'mb-3']
-    );
+    echo $OUTPUT->heading($pagetitle, 2);
+    if ($canmanage) {
+        echo html_writer::tag(
+            'p',
+            get_string('manage_pagedesc', 'report_learningoutcomes'),
+            ['class' => 'mb-3']
+        );
+    }
     echo $OUTPUT->notification(
         get_string('manage_nooutcomes', 'report_learningoutcomes'),
         \core\output\notification::NOTIFY_INFO
@@ -116,13 +121,15 @@ if ($canmanage) {
 // ── Page output ──────────────────────────────────────────────────────────────
 
 echo $OUTPUT->header();
-echo $OUTPUT->heading(get_string('manage_heading', 'report_learningoutcomes'), 2);
+echo $OUTPUT->heading($pagetitle, 2);
 
-echo html_writer::tag(
-    'p',
-    get_string('manage_pagedesc', 'report_learningoutcomes'),
-    ['class' => 'mb-3']
-);
+if ($canmanage) {
+    echo html_writer::tag(
+        'p',
+        get_string('manage_pagedesc', 'report_learningoutcomes'),
+        ['class' => 'mb-3']
+    );
+}
 
 // Link to the gradebook outcomes page so teachers can add/edit/delete outcomes.
 if ($canmanage) {
@@ -240,7 +247,7 @@ foreach ($outcomes as $outcome) {
             'data-outcomeid' => $outcomeid,
         ]);
         echo html_writer::tag('button',
-            get_string('add'),
+            get_string('manage_linkbtn', 'report_learningoutcomes'),
             [
                 'type'           => 'button',
                 'class'          => 'btn btn-sm btn-primary lo-add-btn',
@@ -290,7 +297,7 @@ if ($canmanage) {
 
             echo html_writer::tag('tr',
                 html_writer::tag('td', html_writer::link($url, $icon . format_string($cm->get_formatted_name()))) .
-                html_writer::tag('td', html_writer::tag('span', ucfirst($cm->modname), ['class' => 'badge bg-secondary text-dark']))
+            html_writer::tag('td', html_writer::tag('span', $cm->modfullname, ['class' => 'badge bg-secondary text-dark']))
             );
         }
 

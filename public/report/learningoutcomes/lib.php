@@ -148,7 +148,7 @@ function report_learningoutcomes_activity_row(
 
     $cells  = html_writer::tag('td', html_writer::link($url, $icon . $activityname));
     $cells .= html_writer::tag('td',
-        html_writer::tag('span', ucfirst($cm->modname), ['class' => 'badge bg-secondary text-dark'])
+        html_writer::tag('span', $cm->modfullname, ['class' => 'badge bg-secondary text-dark'])
     );
 
     if ($canmanage) {
@@ -161,6 +161,11 @@ function report_learningoutcomes_activity_row(
                     'data-cmid'         => $cm->id,
                     'data-outcomeid'    => $outcomeid,
                     'data-activityname' => $activityname,
+                    'aria-label'        => get_string(
+                        'manage_removelink_arialabel',
+                        'report_learningoutcomes',
+                        $activityname
+                    ),
                 ]
             ),
             ['class' => 'text-end']

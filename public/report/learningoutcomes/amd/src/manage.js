@@ -31,8 +31,11 @@ import {getString} from 'core/str';
 /** @type {number} */
 let courseId;
 
-/** Pending deferred removals keyed by `${outcomeid}-${cmid}`. */
-const pending = {};
+/** Pre-loaded lang string for the undo label. */
+let strUndo = '';
+
+/** Pre-loaded lang string for the empty-row placeholder. */
+let strNoActivities = '';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -90,35 +93,33 @@ async function callAjax(action, cmid, outcomeid) {
 
 /**
  * Inserts an in-card undo notification with a 10-second countdown.
+ * Calls onUndo immediately when the user clicks Undo, or onExpire when the
+ * timer elapses with no action taken.
  *
  * @param {string}   activityname  Display name of the removed activity.
  * @param {string}   outcomeid     Outcome ID (for locating the card).
- * @param {string}   cmid          CM ID (used as part of the token).
  * @param {Function} onUndo        Called immediately when the user clicks Undo.
+ * @param {Function} onExpire      Called when the 10-second window closes without undo.
  */
-function showUndoAlert(activityname, outcomeid, cmid, onUndo) {
-    const token = `${outcomeid}-${cmid}`;
+async function showUndoAlert(activityname, outcomeid, onUndo, onExpire) {
+    const removedMsg = await getString('manage_removedmsg', 'report_learningoutcomes', activityname);
 
-    const alert = document.createElement('div');
-    alert.className = 'alert alert-info alert-dismissible lo-undo-alert d-flex align-items-center gap-2 py-2';
-    alert.setAttribute('role', 'status');
-    alert.innerHTML = `
-        <span>
-            <strong>${escHtml(activityname)}</strong> removed from outcome.
-        </span>
-        <a href="#" class="lo-undo-link alert-link ms-1">Undo</a>
-        <span class="text-muted small ms-auto lo-countdown">(10s)</span>
-        <button type="button" class="btn-close ms-2" data-bs-dismiss="alert" aria-label="Close"></button>
-    `;
+    const alertEl = document.createElement('div');
+    alertEl.className = 'alert alert-info lo-undo-alert d-flex align-items-center gap-2 py-2';
+    alertEl.setAttribute('role', 'status');
+    alertEl.innerHTML =
+        `<span>${escHtml(removedMsg)}</span>` +
+        `<a href="#" class="lo-undo-link alert-link ms-1">${escHtml(strUndo)}</a>` +
+        `<span class="text-muted small ms-auto lo-countdown" aria-hidden="true">(10s)</span>`;
 
     const card = document.querySelector(`.lo-outcome-section[data-outcomeid="${outcomeid}"] .card-body`);
     if (card) {
-        card.prepend(alert);
+        card.prepend(alertEl);
     }
 
-    // Countdown.
+    // Countdown — visual only; hidden from assistive technology via aria-hidden.
     let remaining = 10;
-    const countdownEl = alert.querySelector('.lo-countdown');
+    const countdownEl = alertEl.querySelector('.lo-countdown');
     const interval = setInterval(() => {
         remaining--;
         if (countdownEl) {
@@ -129,27 +130,23 @@ function showUndoAlert(activityname, outcomeid, cmid, onUndo) {
         }
     }, 1000);
 
-    // Auto-dismiss after 10 s (the AJAX call has already been made by then).
+    // Auto-dismiss after 10 s then trigger onExpire.
     const dismissTimer = setTimeout(() => {
         clearInterval(interval);
-        alert.remove();
-        delete pending[token];
+        alertEl.remove();
+        if (onExpire) {
+            onExpire();
+        }
     }, 10000);
 
     // Undo action.
-    alert.querySelector('.lo-undo-link').addEventListener('click', (e) => {
+    alertEl.querySelector('.lo-undo-link').addEventListener('click', (e) => {
         e.preventDefault();
         clearTimeout(dismissTimer);
         clearInterval(interval);
-        alert.remove();
-        const entry = pending[token];
-        delete pending[token];
-        if (entry) {
-            onUndo(entry);
-        }
+        alertEl.remove();
+        onUndo();
     });
-
-    pending[token] = {dismissTimer, interval};
 }
 
 // ── Remove handler ────────────────────────────────────────────────────────────
@@ -157,8 +154,9 @@ function showUndoAlert(activityname, outcomeid, cmid, onUndo) {
 /**
  * Handles clicks on .lo-remove-btn.
  *
- * Immediately hides the row and schedules the AJAX call 10 s later.
- * If the user clicks Undo the row is restored and the AJAX is cancelled.
+ * Immediately calls untag via AJAX and hides the row, then shows a 10-second
+ * undo alert. If the user clicks Undo, the activity is re-tagged and the row
+ * is restored. Navigating away is safe because the AJAX is already committed.
  *
  * @param {Event} e
  */
@@ -170,47 +168,40 @@ async function handleRemove(e) {
 
     const {cmid, outcomeid, activityname} = btn.dataset;
     const row = btn.closest('tr');
-    const token = `${outcomeid}-${cmid}`;
-
-    // Cancel any existing deferred removal for this row.
-    if (pending[token]) {
-        clearTimeout(pending[token].ajaxTimer);
-    }
 
     // Visually hide the row immediately.
     row.style.display = 'none';
     maybeShowEmptyPlaceholder(outcomeid);
 
-    // Schedule the AJAX call for 10 s from now.
-    let undone = false;
-
-    const ajaxTimer = setTimeout(async() => {
-        if (undone) {
-            return;
-        }
-        try {
-            await callAjax('untag', cmid, outcomeid);
-            row.remove();
-            maybeShowEmptyPlaceholder(outcomeid);
-        } catch (err) {
-            // Server error — restore the row.
-            row.style.display = '';
-            maybeShowEmptyPlaceholder(outcomeid);
-            Notification.exception(err);
-        }
-        delete pending[token];
-    }, 10000);
-
-    pending[token] = {ajaxTimer};
-
-    showUndoAlert(activityname, outcomeid, cmid, () => {
-        // Undo: cancel the timer and restore the row.
-        undone = true;
-        clearTimeout(ajaxTimer);
-        delete pending[token];
+    // Commit the removal immediately — safe to navigate away now.
+    try {
+        await callAjax('untag', cmid, outcomeid);
+    } catch (err) {
+        // Server error — restore the row and surface the problem.
         row.style.display = '';
         maybeShowEmptyPlaceholder(outcomeid);
-    });
+        Notification.exception(err);
+        return;
+    }
+
+    showUndoAlert(activityname, outcomeid,
+        // onUndo: re-tag the activity and restore the row.
+        async() => {
+            try {
+                await callAjax('tag', cmid, outcomeid);
+            } catch (err) {
+                Notification.exception(err);
+                return;
+            }
+            row.style.display = '';
+            maybeShowEmptyPlaceholder(outcomeid);
+        },
+        // onExpire: remove the row from the DOM once the undo window has closed.
+        () => {
+            row.remove();
+            maybeShowEmptyPlaceholder(outcomeid);
+        }
+    );
 }
 
 // ── Add handler ───────────────────────────────────────────────────────────────
@@ -239,6 +230,11 @@ async function handleAdd(e) {
     }
 
     btn.disabled = true;
+    const spinner = document.createElement('span');
+    spinner.className = 'spinner-border spinner-border-sm me-1';
+    spinner.setAttribute('role', 'status');
+    spinner.setAttribute('aria-hidden', 'true');
+    btn.prepend(spinner);
 
     try {
         const result = await callAjax('tag', cmid, outcomeid);
@@ -270,6 +266,7 @@ async function handleAdd(e) {
         Notification.exception(err);
     }
 
+    spinner.remove();
     btn.disabled = false;
 }
 
@@ -296,7 +293,7 @@ function maybeShowEmptyPlaceholder(outcomeid) {
         // Build and insert a placeholder.
         const colspan = tbody.closest('table').querySelectorAll('thead th').length;
         const placeholder = document.createElement('tr');
-        const msg = 'No activities linked to this outcome yet.';
+        const msg = strNoActivities;
         placeholder.innerHTML =
             `<td class="lo-empty-row" colspan="${colspan}"><em class="text-muted">${msg}</em></td>`;
         tbody.appendChild(placeholder);
@@ -313,8 +310,13 @@ function maybeShowEmptyPlaceholder(outcomeid) {
  * @param {Object} config
  * @param {number} config.courseid
  */
-export const init = (config) => {
+export const init = async(config) => {
     courseId = config.courseid;
+
+    [strUndo, strNoActivities] = await Promise.all([
+        getString('manage_undo', 'report_learningoutcomes'),
+        getString('manage_noactivitieslinked', 'report_learningoutcomes'),
+    ]);
 
     document.addEventListener('click', handleRemove);
     document.addEventListener('click', handleAdd);

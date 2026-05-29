@@ -59,6 +59,16 @@ if (empty($CFG->enableoutcomes) || !$manager->is_enabled_for_course($courseid)) 
 
 echo html_writer::tag('p', get_string('reportintro', 'report_learningoutcomes'));
 
+$canmanage = has_capability('report/learningoutcomes:manage', $context);
+if ($canmanage) {
+    $manageurl = new moodle_url('/report/learningoutcomes/manage.php', ['id' => $courseid]);
+    echo html_writer::tag(
+        'p',
+        html_writer::link($manageurl, get_string('manage_linkinnav', 'report_learningoutcomes')),
+        ['class' => 'mb-3']
+    );
+}
+
 $report = $manager->get_alignment_report($courseid);
 
 // =========================================================================

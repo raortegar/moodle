@@ -118,7 +118,7 @@ class block_learningoutcomes extends block_base {
                 ]
             );
             // Short name badge on first line, full name on a separate line below.
-            $header = html_writer::tag('div', $badge, ['class' => 'mb-1 mt-5'])
+            $header = html_writer::tag('div', $badge, ['class' => 'mb-1 mt-2'])
                 . html_writer::tag('div', format_string($outcome->fullname), ['class' => 'small']);
 
             // Aligned activities.
