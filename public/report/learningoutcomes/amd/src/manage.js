@@ -26,6 +26,7 @@
  */
 
 import Notification from 'core/notification';
+import {getString} from 'core/str';
 
 /** @type {number} */
 let courseId;
@@ -261,6 +262,10 @@ async function handleAdd(e) {
             opt.remove();
         }
         select.value = '';
+
+        // Show a top-of-page success notification.
+        const msg = await getString('manage_addedmsg', 'report_learningoutcomes', result.activityname);
+        Notification.addNotification({message: msg, type: 'info'});
     } catch (err) {
         Notification.exception(err);
     }

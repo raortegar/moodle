@@ -25,16 +25,17 @@
 defined('MOODLE_INTERNAL') || die();
 
 $string['activityname']              = 'Activity name';
-$string['activityoutcomes_heading']  = 'This activity addresses';
 $string['activitytype']              = 'Activity type';
 $string['courseoutcomes_heading']    = 'Learning outcomes';
 $string['courseoutcomes_intro']      = 'By the end of this course, you will be able to:';
 $string['learningoutcomes']          = 'Learning outcomes';
 $string['manage_addactivity']        = 'Link activity:';
+$string['manage_addedmsg']           = '{$a} linked to outcome.';
 $string['manage_heading']            = 'Manage learning outcomes';
 $string['manage_linkinnav']          = 'Manage learning outcomes';
 $string['manage_noactivitieslinked'] = 'No activities linked to this outcome yet.';
 $string['manage_nooutcomes']         = 'No learning outcomes are defined for this course. Add outcomes via the Grades > Outcomes page.';
+$string['manage_pagedesc']           = 'This page shows the learning outcomes defined for this course and lets you link them to course activities. Aligning activities to outcomes helps students understand what each task contributes to their learning, and helps you identify gaps in course coverage.';
 $string['manage_pagetitle']          = 'Manage learning outcomes';
 $string['manage_removelink']         = 'Remove';
 $string['manage_removedmsg']         = '{$a} removed from outcome.';

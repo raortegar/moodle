@@ -19,7 +19,6 @@ namespace report_learningoutcomes;
 use core_course\hook\after_form_definition;
 use core_course\hook\after_form_definition_after_data;
 use core_course\hook\after_form_submission;
-use core\hook\output\after_standard_main_region_html_generation;
 use core\hook\output\before_standard_top_of_body_html_generation;
 
 /**
@@ -120,49 +119,6 @@ class hook_listener {
     // =========================================================================
 
     /**
-     * Injects the outcomes card on course pages and outcome badges on activity
-     * pages, visible to all users who can view the course.
-     *
-     * Fires via {@see \core\hook\output\after_standard_main_region_html_generation}
-     * on every page render; bails out immediately when neither page type matches
-     * or when learning outcomes are not active for the course.
-     *
-     * @param after_standard_main_region_html_generation $hook
-     */
-    public static function inject_student_surfaces(
-        after_standard_main_region_html_generation $hook
-    ): void {
-        global $CFG, $PAGE;
-
-        if (empty($CFG->enableoutcomes)) {
-            return;
-        }
-
-        $page = $PAGE;
-
-        // ── Activity page — outcome badge strip ──────────────────────────────
-        // Course-page activity labels are handled in inject_course_page_labels()
-        // via before_standard_top_of_body_html_generation, which fires before the
-        // course content is rendered and sets afterlink on each cm_info object.
-        if (strpos($page->pagetype, 'mod-') === 0) {
-            $courseid = (int) $page->course->id;
-            $manager  = new \core\learning_outcomes\manager();
-            if (!$manager->is_enabled_for_course($courseid)) {
-                return;
-            }
-            $cm = $page->cm;
-            if (empty($cm)) {
-                return;
-            }
-            $tagged = $manager->get_tagged_outcomes((int) $cm->id);
-            if (empty($tagged)) {
-                return;
-            }
-            $hook->add_html(self::render_activity_badges($tagged));
-        }
-    }
-
-    /**
      * Injects outcome shortname badges on each activity card on the course page.
      *
      * Fires via {@see \core\hook\output\before_standard_top_of_body_html_generation}
@@ -182,6 +138,7 @@ class hook_listener {
             return;
         }
 
+        // ── Course page — set outcome badges on activity cards ────────────────
         if (strpos($PAGE->pagetype, 'course-view-') !== 0) {
             return;
         }
@@ -247,7 +204,8 @@ class hook_listener {
                     'span',
                     $shortname,
                     [
-                        'class'      => 'lo-outcome-badge badge rounded-pill bg-primary text-white me-1',
+                        'class'      => 'lo-outcome-badge badge rounded-pill me-1',
+                        'style'      => 'background-color:#f8f9fa;border:1px solid #e9ecef;color:#343a40;font-weight: 400 !important;',
                         'title'      => $fullname,
                         'aria-label' => $outcomestr . ': ' . $fullname,
                         'role'       => 'note',
@@ -256,9 +214,14 @@ class hook_listener {
             }
 
             // Wrap all badges in a labelled container for screen readers.
+            $label = \html_writer::tag(
+                'span',
+                get_string('learningoutcomes', 'report_learningoutcomes') . ':',
+                ['class' => 'lo-outcome-label-title small text-muted me-1']
+            ) . \html_writer::empty_tag('br');
             $wrapper = \html_writer::tag(
                 'span',
-                $badges,
+                $label . $badges,
                 [
                     'class'      => 'lo-outcome-labels ms-1',
                     'aria-label' => get_string('learningoutcomes', 'report_learningoutcomes'),
@@ -267,38 +230,6 @@ class hook_listener {
 
             $cm->set_after_link($existing . $wrapper);
         }
-    }
-
-    /**
-     * Renders the outcome badges shown on an activity page.
-     *
-     * Uses Moodle's standard notification output so the markup is theme-aware.
-     *
-     * @param \stdClass[] $outcomes Tagged outcome rows (from get_tagged_outcomes).
-     * @return string HTML fragment.
-     */
-    private static function render_activity_badges(array $outcomes): string {
-        global $OUTPUT;
-
-        $heading = get_string('activityoutcomes_heading', 'report_learningoutcomes');
-
-        $badges = '';
-        foreach ($outcomes as $outcome) {
-            $label = format_string($outcome->shortname);
-            if (!empty($outcome->fullname)) {
-                $label .= ' \u2014 ' . format_string($outcome->fullname);
-            }
-            $badges .= \html_writer::tag(
-                'span',
-                $label,
-                ['class' => 'badge bg-info text-dark me-1 mb-1']
-            );
-        }
-
-        $message = \html_writer::tag('strong', format_string($heading) . ':', ['class' => 'me-2'])
-                 . $badges;
-
-        return $OUTPUT->notification($message, \core\output\notification::NOTIFY_INFO, false);
     }
 
     /**

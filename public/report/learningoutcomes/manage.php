@@ -61,10 +61,26 @@ $outcomes = $manager->get_course_outcomes($courseid);
 if (empty($outcomes)) {
     echo $OUTPUT->header();
     echo $OUTPUT->heading(get_string('manage_heading', 'report_learningoutcomes'), 2);
+    echo html_writer::tag(
+        'p',
+        get_string('manage_pagedesc', 'report_learningoutcomes'),
+        ['class' => 'mb-3']
+    );
     echo $OUTPUT->notification(
         get_string('manage_nooutcomes', 'report_learningoutcomes'),
         \core\output\notification::NOTIFY_INFO
     );
+    if ($canmanage) {
+        $gradeoutcomesurl = new moodle_url('/grade/edit/outcome/index.php', ['id' => $courseid]);
+        echo html_writer::tag(
+            'p',
+            $OUTPUT->pix_icon('i/outcomes', '', 'moodle', ['class' => 'me-1']) .
+            html_writer::link(
+                $gradeoutcomesurl,
+                get_string('manage_grade_outcomes_link', 'report_learningoutcomes')
+            )
+        );
+    }
     echo $OUTPUT->footer();
     exit;
 }
@@ -102,6 +118,12 @@ if ($canmanage) {
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('manage_heading', 'report_learningoutcomes'), 2);
 
+echo html_writer::tag(
+    'p',
+    get_string('manage_pagedesc', 'report_learningoutcomes'),
+    ['class' => 'mb-3']
+);
+
 // Link to the gradebook outcomes page so teachers can add/edit/delete outcomes.
 if ($canmanage) {
     $gradeoutcomesurl = new moodle_url('/grade/edit/outcome/index.php', ['id' => $courseid]);
@@ -125,18 +147,21 @@ foreach ($outcomes as $outcome) {
     $badge = html_writer::tag(
         'span',
         format_string($outcome->shortname),
-        ['class' => 'badge bg-primary me-2 align-middle']
+        [
+            'class' => 'badge me-2 align-middle',
+            'style' => 'background-color:#cce6ea;border:1px solid #99cdd5;color:#00343c;',
+        ]
     );
 
     echo html_writer::start_div(
-        'lo-outcome-section card mb-4',
+        'lo-outcome-section card mb-5',
         ['data-outcomeid' => $outcomeid]
     );
 
     // Card header.
     echo html_writer::start_div('card-header d-flex align-items-center');
     echo $badge;
-    echo html_writer::tag('span', format_string($outcome->fullname), ['class' => 'fw-semibold']);
+    echo html_writer::tag('span', format_string($outcome->fullname), ['class' => '']);
     echo html_writer::end_div();
 
     echo html_writer::start_div('card-body');

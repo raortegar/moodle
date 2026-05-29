@@ -112,11 +112,14 @@ class block_learningoutcomes extends block_base {
             $badge = html_writer::tag(
                 'span',
                 format_string($outcome->shortname),
-                ['class' => 'badge bg-primary']
+                [
+                    'class' => 'badge',
+                    'style' => 'background-color:#cce6ea;border:1px solid #99cdd5;color:#00343c;',
+                ]
             );
             // Short name badge on first line, full name on a separate line below.
-            $header = html_writer::tag('div', $badge, ['class' => 'mb-1'])
-                . html_writer::tag('div', format_string($outcome->fullname), ['class' => 'fw-semibold']);
+            $header = html_writer::tag('div', $badge, ['class' => 'mb-1 mt-5'])
+                . html_writer::tag('div', format_string($outcome->fullname), ['class' => 'small']);
 
             // Aligned activities.
             $taggedcms    = $manager->get_activities_for_outcome((int) $outcome->id, $courseid);
