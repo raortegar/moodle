@@ -67,6 +67,7 @@ if ($confirm) {
                 // This is subchapter of the chapter being removed.
                 core_tag_tag::remove_all_item_tags('mod_book', 'book_chapters', $ch->id);
                 $fs->delete_area_files($context->id, 'mod_book', 'chapter', $ch->id);
+                $DB->delete_records('book_chapters_userviews', ['chapterid' => $ch->id]);
                 $DB->delete_records('book_chapters', ['id' => $ch->id]);
                 \mod_book\event\chapter_deleted::create_from_chapter($book, $context, $ch)->trigger();
 
@@ -79,6 +80,7 @@ if ($confirm) {
     // Now delete the actual chapter.
     core_tag_tag::remove_all_item_tags('mod_book', 'book_chapters', $chapter->id);
     $fs->delete_area_files($context->id, 'mod_book', 'chapter', $chapter->id);
+    $DB->delete_records('book_chapters_userviews', ['chapterid' => $chapter->id]);
     $DB->delete_records('book_chapters', ['id' => $chapter->id]);
 
     \mod_book\event\chapter_deleted::create_from_chapter($book, $context, $chapter)->trigger();
@@ -91,6 +93,9 @@ if ($confirm) {
 
     // Bump the book revision.
     $DB->set_field('book', 'revision', $book->revision + 1, ['id' => $book->id]);
+
+    // Removing chapters changes the read percentage of every user, so recalculate the activity completion.
+    \mod_book\helper::reset_completion_state($book, $course);
 
     if ($subchaptercount) {
         $message = get_string('chapterandsubchaptersdeleted', 'mod_book', (object) [

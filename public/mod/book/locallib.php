@@ -601,6 +601,53 @@ function mod_book_get_tagged_chapters($tag, $exclusivemode = false, $fromctx = 0
 }
 
 /**
+ * Returns the ID of the last visited page to show
+ *
+ * @param int $bookid
+ * @param array $chapters
+ * @return int|null The chapter ID, or null if no chapter should be displayed.
+ */
+function book_get_chapter_to_display(int $bookid, array $chapters): ?int {
+    $lastuserviewedchapterid = book_get_last_viewed_chapter($bookid);
+
+    if ($lastuserviewedchapterid === null || !isset($chapters[$lastuserviewedchapterid])) {
+        return null;
+    }
+
+    if ($chapters[$lastuserviewedchapterid]->hidden) {
+        return null;
+    }
+
+    return $lastuserviewedchapterid;
+}
+
+/**
+ * Returns the ID of the last visited page based on the book user views
+ *
+ * @param int $bookid
+ * @return int|null The chapter ID, or null if no chapter has been viewed.
+ */
+function book_get_last_viewed_chapter(int $bookid): ?int {
+    global $DB, $USER;
+
+    $sql = "SELECT uv.chapterid
+              FROM {book_chapters_userviews} uv
+              JOIN {book_chapters} bc ON bc.id = uv.chapterid
+             WHERE bc.bookid = :bookid AND uv.userid = :userid AND bc.hidden = 0
+          ORDER BY uv.timeviewed DESC";
+
+    $parameters = [
+        'bookid' => $bookid,
+        'userid' => $USER->id,
+    ];
+
+    $records = $DB->get_records_sql($sql, $parameters, 0, 1);
+    $record = reset($records);
+
+    return $record ? (int)$record->chapterid : null;
+}
+
+/**
  * File browsing support class
  *
  * @copyright  2010-2011 Petr Skoda {@link http://skodak.org}

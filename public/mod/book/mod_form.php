@@ -79,4 +79,107 @@ class mod_book_mod_form extends moodleform_mod {
 
         $this->add_action_buttons();
     }
+
+    /**
+     * Process the data before load the form
+     *
+     * @param array $defaultvalues
+     */
+    public function data_preprocessing(&$defaultvalues) {
+        parent::data_preprocessing($defaultvalues);
+
+        $suffix = $this->get_suffix();
+        $completionreadpercentel = 'completionreadpercent' . $suffix;
+        $completionreadpercentactiveel = 'completionreadpercentactive' . $suffix;
+        $defaultvalues[$completionreadpercentactiveel] = !empty($defaultvalues[$completionreadpercentel]) ? 1 : 0;
+    }
+
+    #[\Override]
+    public function add_completion_rules() {
+        $mform = $this->_form;
+        $suffix = $this->get_suffix();
+
+        $completionreadpercentoptions = [0 => get_string('choose')];
+        for ($i = 5; $i <= 100; $i += 5) {
+            $completionreadpercentoptions[$i] = $i . '%';
+        }
+
+        $completionreadpercentactiveel = 'completionreadpercentactive' . $suffix;
+        $completionreadpercentel = 'completionreadpercent' . $suffix;
+        $completionreadpercentgroupel = 'completionreadpercentgroup' . $suffix;
+
+        $group = [
+            $mform->createElement(
+                'checkbox',
+                $completionreadpercentactiveel,
+                '',
+                get_string('requiredcompletionreadpercent', 'mod_book')
+            ),
+            $mform->createElement(
+                'select',
+                $completionreadpercentel,
+                get_string('completionreadpercentselect', 'mod_book'),
+                $completionreadpercentoptions
+            ),
+        ];
+
+        $mform->addGroup($group, $completionreadpercentgroupel, '', '', false);
+        $mform->disabledIf($completionreadpercentel, $completionreadpercentactiveel, 'notchecked');
+
+        return [$completionreadpercentgroupel];
+    }
+
+    /**
+     * Validates the form.
+     *
+     * @param array $data
+     * @param array $files
+     *
+     * @return array
+     */
+    public function validation($data, $files) {
+        $errors = parent::validation($data, $files);
+        $suffix = $this->get_suffix();
+        $completionreadpercentactiveel = 'completionreadpercentactive' . $suffix;
+        $completionreadpercentel = 'completionreadpercent' . $suffix;
+        $completionreadpercentgroupel = 'completionreadpercentgroup' . $suffix;
+
+        // The select is disabled, and therefore not submitted, while the checkbox is unticked.
+        if (!empty($data[$completionreadpercentactiveel]) && empty($data[$completionreadpercentel])) {
+            $errors[$completionreadpercentgroupel] = get_string('completionreadpercentvalidation', 'mod_book');
+        }
+
+        return $errors;
+    }
+
+    #[\Override]
+    public function completion_rule_enabled($data) {
+        $suffix = $this->get_suffix();
+        return (!empty($data['completionreadpercentactive' . $suffix]) && $data['completionreadpercent' . $suffix] > 0);
+    }
+
+    /**
+     * Allows module to modify the data returned by form get_data().
+     *
+     * @param stdClass $data the form data to be modified.
+     */
+    public function data_postprocessing($data) {
+        parent::data_postprocessing($data);
+
+        // Turn off the readpercent completion setting if the checkbox is unticked.
+        if (!empty($data->completionunlocked)) {
+            $suffix = $this->get_suffix();
+            $completionel = 'completion' . $suffix;
+            $completionreadpercentactiveel = 'completionreadpercentactive' . $suffix;
+            $completionreadpercentel = 'completionreadpercent' . $suffix;
+
+            $completion = $data->{$completionel} ?? COMPLETION_TRACKING_NONE;
+            $autocompletion = !empty($completion) && $completion == COMPLETION_TRACKING_AUTOMATIC;
+
+            $ruleenabled = !empty($data->{$completionreadpercentactiveel}) && !empty($data->{$completionreadpercentel});
+            if (!$ruleenabled || !$autocompletion) {
+                $data->{$completionreadpercentel} = 0;
+            }
+        }
+    }
 }

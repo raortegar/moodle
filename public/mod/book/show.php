@@ -72,5 +72,8 @@ if (!$chapter->subchapter) {
 book_preload_chapters($book); // fix structure
 $DB->set_field('book', 'revision', $book->revision+1, array('id'=>$book->id));
 
+// Hiding or showing chapters changes the read percentage of every user, so recalculate the activity completion.
+\mod_book\helper::reset_completion_state($book, $course);
+
 redirect('view.php?id='.$cm->id.'&chapterid='.$chapter->id);
 

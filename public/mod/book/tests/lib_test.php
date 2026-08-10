@@ -198,7 +198,7 @@ final class lib_test extends \advanced_testcase {
      * @return void
      */
     public function test_book_view(): void {
-        global $CFG, $DB;
+        global $CFG, $DB, $USER;
 
         $CFG->enablecompletion = 1;
 
@@ -236,6 +236,84 @@ final class lib_test extends \advanced_testcase {
         $events = $sink->get_events();
         // We expect a total of 4 events. One for module viewed, one for chapter viewed and two belonging to completion.
         $this->assertCount(4, $events);
+
+        // Check completion status.
+        $completion = new \completion_info($course);
+        $completiondata = $completion->get_data($cm);
+        $this->assertEquals(1, $completiondata->completionstate);
+
+        // Exactly one userview record should have been created for this chapter/user.
+        $this->assertEquals(
+            1,
+            $DB->count_records('book_chapters_userviews', ['chapterid' => $chapter->id, 'userid' => $USER->id]),
+        );
+
+        // Revisiting the same chapter again should not create a new record.
+        $this->waitForSecond();
+        book_view($book, $chapter, true, $course, $cm, $context);
+
+        $this->assertEquals(
+            1,
+            $DB->count_records('book_chapters_userviews', ['chapterid' => $chapter->id, 'userid' => $USER->id]),
+        );
+    }
+
+    /**
+     * Test book completion using read percentage configured
+     *
+     * @covers ::book_view
+     * @return void
+     * @throws \coding_exception
+     */
+    public function test_book_view_completion_with_readpercent(): void {
+        global $CFG;
+
+        $CFG->enablecompletion = 1;
+
+        // Setup test data.
+        $course = $this->getDataGenerator()->create_course(['enablecompletion' => 1]);
+        $book = $this->getDataGenerator()->create_module(
+            'book',
+            ['course' => $course->id, 'completionreadpercent' => 50],
+            ['completion' => 2, 'completionview' => 1]
+        );
+        $bookgenerator = $this->getDataGenerator()->get_plugin_generator('mod_book');
+        $chapter1 = $bookgenerator->create_chapter(['bookid' => $book->id]);
+        $chapter2 = $bookgenerator->create_chapter(['bookid' => $book->id]);
+        $chapter3 = $bookgenerator->create_chapter(['bookid' => $book->id]);
+
+        $context = \context_module::instance($book->cmid);
+        $cm = get_coursemodule_from_instance('book', $book->id);
+
+        // Trigger and capture the event.
+        $sink = $this->redirectEvents();
+
+        // Check just opening the book.
+        book_view($book, 0, false, $course, $cm, $context);
+
+        $events = $sink->get_events();
+
+        // Course module viewed and course module completion updated events.
+        $this->assertCount(1, $events);
+
+        // Check that completion status is incomplete.
+        $completion = new \completion_info($course);
+        $completiondata = $completion->get_data($cm);
+        $this->assertEquals(0, $completiondata->completionstate);
+
+        book_view($book, $chapter1, false, $course, $cm, $context);
+
+        // Check that completion status still incomplete.
+        // The user only read 1 chapter from 3. This not supply the required 50 percent of reading.
+        $completiondata = $completion->get_data($cm);
+        $this->assertEquals(0, $completiondata->completionstate);
+
+        book_view($book, $chapter2, true, $course, $cm, $context);
+
+        $events = $sink->get_events();
+
+        // We expect a total of 5 events. One for module viewed, two for chapters viewed and two belonging to completion.
+        $this->assertCount(5, $events);
 
         // Check completion status.
         $completion = new \completion_info($course);
@@ -523,5 +601,38 @@ final class lib_test extends \advanced_testcase {
 
         // User cannot see hidden chapters.
         $this->assertDoesNotMatchRegularExpression('/'.$chapter16->title.'/', $res->content);
+    }
+
+    /**
+     * Resetting a course completion data must purge the chapter view history that backs completion.
+     *
+     * @covers ::book_reset_userdata
+     * @return void
+     */
+    public function test_book_reset_userdata_removes_userviews(): void {
+        global $DB;
+
+        $course = $this->getDataGenerator()->create_course();
+        $book = $this->getDataGenerator()->create_module('book', ['course' => $course->id]);
+        $bookgenerator = $this->getDataGenerator()->get_plugin_generator('mod_book');
+        $chapter = $bookgenerator->create_chapter(['bookid' => $book->id]);
+        $student = $this->getDataGenerator()->create_and_enrol($course, 'student');
+
+        $now = time();
+        $DB->insert_record('book_chapters_userviews', (object) [
+            'chapterid'   => $chapter->id,
+            'userid'      => $student->id,
+            'timecreated' => $now,
+            'timeviewed'  => $now,
+        ]);
+        $this->assertEquals(1, $DB->count_records('book_chapters_userviews'));
+
+        // Resetting without the completion option must keep the view history untouched.
+        book_reset_userdata((object) ['courseid' => $course->id]);
+        $this->assertEquals(1, $DB->count_records('book_chapters_userviews'));
+
+        // Resetting the completion data must remove the view history.
+        book_reset_userdata((object) ['courseid' => $course->id, 'reset_completion' => 1]);
+        $this->assertEquals(0, $DB->count_records('book_chapters_userviews'));
     }
 }
