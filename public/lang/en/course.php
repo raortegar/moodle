@@ -126,6 +126,9 @@ $string['filterlastactive'] = 'Last ({$a->last})';
 $string['gradetopassnotset'] = 'This course does not have a grade to pass set. It may be set in the grade item of the course (Gradebook setup).';
 $string['hideendedcoursestask'] = 'Hide courses on end date';
 $string['informationformodule'] = 'Information about the {$a} activity';
+$string['learningoutcomes'] = 'Learning outcomes';
+$string['learningoutcomesintro'] = 'The following learning outcomes describe what you will learn and be able to demonstrate by the end of this course. The activities listed under each outcome show how you will develop and demonstrate your learning.';
+$string['managelearningoutcomes'] = 'Manage learning outcomes';
 $string['mod_purpose_administration'] = 'Administration';
 $string['mod_purpose_administration_help'] = 'Tools for course management.';
 $string['mod_purpose_assessment'] = 'Assessment';
@@ -149,6 +152,8 @@ $string['noaccesssincestartinfomessage'] = 'Hi {$a->userfirstname},
 <p>A number of students in {$a->coursename} have never accessed the course.</p>';
 $string['norecentaccessesinfomessage'] = 'Hi {$a->userfirstname},
 <p>A number of students in {$a->coursename} have not accessed the course recently.</p>';
+$string['nolearningoutcomeactivities'] = 'No activities are associated with this learning outcome in this course.';
+$string['nolearningoutcomesincourse'] = 'No learning outcomes are associated with this course.';
 $string['noteachinginfomessage'] = 'Hi {$a->userfirstname},
 <p>Courses with start dates in the next week have been identified as having no teacher or student enrolments.</p>';
 $string['overview_info'] = 'An overview of all activities in the course, with dates and other information.';
