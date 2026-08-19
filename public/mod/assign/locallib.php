@@ -6080,9 +6080,17 @@ class assign {
                 }
             }
 
-            // The assign grade for each attempt is not stored in the gradebook.
-            // We need to calculate them from assign_grade records.
-            [$penalisedgrade, $deductedmark] = $this->calculate_penalised_grade($grade, $usergrade);
+            // Check to see if the gradebook is frozen. This allows grades to not be altered at all until a user verifies that they
+            // wish to update the grades.
+            $gradebookcalculationsfreeze = get_config('core', 'gradebook_calculations_freeze_' . $this->get_course()->id);
+            // Stick with the original code if the grade book is frozen.
+            if ($gradebookcalculationsfreeze && (int)$gradebookcalculationsfreeze <= 20260808) {
+                [$penalisedgrade, $deductedmark] = $this->calculate_penalised_grade($grade);
+            } else {
+                // The assign grade for each attempt is not stored in the gradebook.
+                // We need to calculate them from assign_grade records.
+                [$penalisedgrade, $deductedmark] = $this->calculate_penalised_grade($grade, $usergrade);
+            }
 
             // Now get the gradefordisplay.
             if ($controller) {
@@ -6127,17 +6135,26 @@ class assign {
             $deductedmark = $grade->grade * $grade->penalty / 100;
             $penalisedgrade = $grade->grade - $deductedmark;
         }
-        // Apply the grade-item factors so the returned grade matches the
-        // final grade stored in the gradebook.
-        $gradeitem = $this->get_grade_item();
-        if ($usergraderecord === null) {
-            $usergraderecord = $gradeitem->get_grade($grade->userid, false);
+
+        // Check to see if the gradebook is frozen. This allows grades to not be altered at all until a user verifies that they
+        // wish to update the grades.
+        $gradebookcalculationsfreeze = get_config('core', 'gradebook_calculations_freeze_' . $this->get_course()->id);
+        // Stick with the original code if the grade book is frozen.
+        if ($gradebookcalculationsfreeze && (int)$gradebookcalculationsfreeze <= 20260808) {
+            // Do nothing.
+        } else {
+            // Apply the grade-item factors so the returned grade matches the
+            // final grade stored in the gradebook.
+            $gradeitem = $this->get_grade_item();
+            if ($usergraderecord === null) {
+                $usergraderecord = $gradeitem->get_grade($grade->userid, false);
+            }
+            $penalisedgrade = \core_grades\penalty_manager::apply_grade_item_factors(
+                $penalisedgrade,
+                $gradeitem,
+                $usergraderecord
+            );
         }
-        $penalisedgrade = \core_grades\penalty_manager::apply_grade_item_factors(
-            $penalisedgrade,
-            $gradeitem,
-            $usergraderecord
-        );
         return [$penalisedgrade, $deductedmark];
     }
 

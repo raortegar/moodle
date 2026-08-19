@@ -2018,4 +2018,81 @@ calendar,core_calendar|/calendar/view.php?view=month',
         $this->assertCount(1, $files);
         $this->assertEquals('existingboost.scss', reset($files)->get_filename());
     }
+
+    /**
+     * Create a grade item with a single graded user, optionally with a penalty deducted.
+     *
+     * @param int $courseid The course id.
+     * @param float $multfactor The grade item's multiplier.
+     * @param float $plusfactor The grade item's offset.
+     * @param float $deductedmark The mark deducted from the user's grade as a penalty.
+     * @return grade_item The created grade item.
+     */
+    private function create_graded_item_with_penalty(
+        int $courseid,
+        float $multfactor,
+        float $plusfactor,
+        float $deductedmark
+    ): grade_item {
+        $gradeitem = new grade_item();
+        $gradeitem->itemname = 'test grade item';
+        $gradeitem->itemtype = 'manual';
+        $gradeitem->courseid = $courseid;
+        $gradeitem->multfactor = $multfactor;
+        $gradeitem->plusfactor = $plusfactor;
+        $gradeitem->insert();
+
+        $user = $this->getDataGenerator()->create_user();
+        $grade = $gradeitem->get_grade($user->id, true);
+        $grade->rawgrade = 50;
+        $grade->deductedmark = $deductedmark;
+        $grade->update();
+
+        return $gradeitem;
+    }
+
+    /**
+     * Test that courses affected by MDL-88407 are frozen during upgrade.
+     *
+     * @covers ::upgrade_penalty_calculation_freeze
+     */
+    public function test_upgrade_penalty_calculation_freeze(): void {
+        global $CFG;
+
+        $this->resetAfterTest();
+
+        require_once($CFG->libdir . '/db/upgradelib.php');
+
+        // Course 1: penalty deducted with default multiplier/offset - affected.
+        $course1 = $this->getDataGenerator()->create_course();
+        $this->create_graded_item_with_penalty($course1->id, 1.0, 0.0, 20.0);
+
+        // Course 2: non-default multiplier/offset, no penalty deducted - not affected.
+        $course2 = $this->getDataGenerator()->create_course();
+        $this->create_graded_item_with_penalty($course2->id, 2.0, 5.0, 0.0);
+
+        // Course 3: non-default multiplier/offset and a penalty deducted - affected.
+        $course3 = $this->getDataGenerator()->create_course();
+        $this->create_graded_item_with_penalty($course3->id, 2.0, 5.0, 20.0);
+
+        upgrade_penalty_calculation_freeze();
+
+        $this->assertEquals(20260808, $CFG->{'gradebook_calculations_freeze_' . $course1->id});
+        $this->assertTrue(empty($CFG->{'gradebook_calculations_freeze_' . $course2->id}));
+        $this->assertEquals(20260808, $CFG->{'gradebook_calculations_freeze_' . $course3->id});
+
+        // Running the script again for an already-frozen course must not overwrite the existing value.
+        set_config('gradebook_calculations_freeze_' . $course3->id, 20150627);
+        upgrade_penalty_calculation_freeze();
+        $this->assertEquals(20150627, $CFG->{'gradebook_calculations_freeze_' . $course3->id});
+
+        // Running the script for a single course only must not affect other courses.
+        set_config('gradebook_calculations_freeze_' . $course3->id, null);
+        $course4 = $this->getDataGenerator()->create_course();
+        $this->create_graded_item_with_penalty($course4->id, 3.0, 1.0, 15.0);
+
+        upgrade_penalty_calculation_freeze($course4->id);
+        $this->assertTrue(empty($CFG->{'gradebook_calculations_freeze_' . $course3->id}));
+        $this->assertEquals(20260808, $CFG->{'gradebook_calculations_freeze_' . $course4->id});
+    }
 }

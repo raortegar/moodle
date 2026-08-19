@@ -526,6 +526,17 @@ class restore_gradebook_structure_step extends restore_structure_step {
             require_once($CFG->libdir . '/db/upgradelib.php');
             upgrade_course_letter_boundary($this->get_courseid());
         }
+        // Penalised grades may have had a grade item's multiplier/offset applied twice between the
+        // introduction of grade penalties (20250318) and the MDL-88407 fix. As the fix did not include
+        // a version bump, 20260808 is used as the conservative cutoff for identifying affected backups.
+        if (
+            !$gradebookcalculationsfreeze
+            && $restoretask->backup_version_compare(20250318, '>=')
+            && $restoretask->backup_version_compare(20260808, '<')
+        ) {
+            require_once($CFG->libdir . '/db/upgradelib.php');
+            upgrade_penalty_calculation_freeze($this->get_courseid());
+        }
 
     }
 

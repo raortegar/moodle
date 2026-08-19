@@ -2178,5 +2178,16 @@ function xmldb_main_upgrade($oldversion) {
         upgrade_main_savepoint(true, 2026080700.01);
     }
 
+    if ($oldversion < 2026081800.01) {
+        // MDL-88407 fixed a bug where a grade item's multiplier/offset could be applied twice to a
+        // penalised grade and where the penalised grade could be incorrectly stored as rawgrade.
+        // Regrading affected courses may recalculate existing final grades from the corrupted rawgrade,
+        // so freeze their gradebook calculations until a user reviews and accepts the changes.
+        upgrade_penalty_calculation_freeze();
+
+        // Main savepoint reached.
+        upgrade_main_savepoint(true, 2026081800.01);
+    }
+
     return true;
 }

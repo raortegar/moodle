@@ -231,31 +231,41 @@ class penalty_manager {
 
         // Update the grade if not in preview mode.
         if (!$previewonly) {
-            $oldfinalgrade = $grade->finalgrade;
+            // Check to see if the gradebook is frozen. This allows grades to not be altered at all until a user verifies that they
+            // wish to update the grades.
+            $gradebookcalculationsfreeze = get_config('core', 'gradebook_calculations_freeze_' . $gradeitem->courseid);
+            // Stick with the original code if the grade book is frozen.
+            if ($gradebookcalculationsfreeze && (int)$gradebookcalculationsfreeze <= 20260808) {
+                // Update the raw grade and store the deducted mark.
+                $gradeitem->update_raw_grade($userid, $container->get_grade_after_penalties(), 'gradepenalty');
+                $gradeitem->update_deducted_mark($userid, $container->get_penalty());
+            } else {
+                $oldfinalgrade = $grade->finalgrade;
 
-            // Apply penalty to raw grade first, then apply grade-item factors to compute final grade.
-            // rawgrade is intentionally not updated - it must always hold the original unpenalised source grade.
-            $grade->deductedmark = $container->get_penalty();
+                // Apply penalty to raw grade first, then apply grade-item factors to compute final grade.
+                // rawgrade is intentionally not updated - it must always hold the original unpenalised source grade.
+                $grade->deductedmark = $container->get_penalty();
 
-            $penalisedraw = $container->get_grade_after_penalties();
-            $grade->finalgrade = self::apply_grade_item_factors($penalisedraw, $gradeitem, $grade);
+                $penalisedraw = $container->get_grade_after_penalties();
+                $grade->finalgrade = self::apply_grade_item_factors($penalisedraw, $gradeitem, $grade);
 
-            $grade->timemodified = time();
-            $grade->update('gradepenalty');
+                $grade->timemodified = time();
+                $grade->update('gradepenalty');
 
-            if (grade_floats_different($grade->finalgrade, $oldfinalgrade)) {
-                \core\event\user_graded::create_from_grade($grade)->trigger();
-                // Regrade parent category/course totals so the penalised finalgrade
-                // is preserved and updated through nested categories if present.
-                if (!$gradeitem->needsupdate && !grade_item::fetch_course_item($gradeitem->courseid)->needsupdate) {
-                    $updateditem = grade_item::fetch([
-                        'itemtype' => 'category',
-                        'iteminstance' => $gradeitem->categoryid,
-                        'courseid' => $gradeitem->courseid,
-                    ]) ?: grade_item::fetch_course_item($gradeitem->courseid);
-                    if (grade_regrade_final_grades($gradeitem->courseid, $userid, $updateditem) !== true) {
-                        // Fast regrade failed; mark the parent (category/course) item for regrading.
-                        $updateditem->force_regrading();
+                if (grade_floats_different($grade->finalgrade, $oldfinalgrade)) {
+                    \core\event\user_graded::create_from_grade($grade)->trigger();
+                    // Regrade parent category/course totals so the penalised finalgrade
+                    // is preserved and updated through nested categories if present.
+                    if (!$gradeitem->needsupdate && !grade_item::fetch_course_item($gradeitem->courseid)->needsupdate) {
+                        $updateditem = grade_item::fetch([
+                            'itemtype' => 'category',
+                            'iteminstance' => $gradeitem->categoryid,
+                            'courseid' => $gradeitem->courseid,
+                        ]) ?: grade_item::fetch_course_item($gradeitem->courseid);
+                        if (grade_regrade_final_grades($gradeitem->courseid, $userid, $updateditem) !== true) {
+                            // Fast regrade failed; mark the parent (category/course) item for regrading.
+                            $updateditem->force_regrading();
+                        }
                     }
                 }
             }
@@ -283,6 +293,113 @@ class penalty_manager {
         $rawmin = !empty($usergrade->id) ? $usergrade->rawgrademin : $gradeitem->grademin;
         $rawmax = !empty($usergrade->id) ? $usergrade->rawgrademax : $gradeitem->grademax;
         return $gradeitem->adjust_raw_grade($rawgrade, $rawmin, $rawmax);
+    }
+
+    /**
+     * Repairs rawgrade values left in the legacy representation by MDL-88407.
+     *
+     * A grade is repaired when:
+     * - it has a deducted mark and a non-null rawgrade;
+     * - its grade item is unlocked;
+     * - the grade itself is unlocked and not overridden;
+     * - it has a final grade; and
+     * - the current Assignment raw grade differs from the stored gradebook rawgrade.
+     *
+     * The Assignment gradebook API is used as the authoritative source for the current
+     * raw grade. Grades for new, ungraded attempts are skipped.
+     *
+     * @param int|null $courseid Specify a course ID to run this script on just one course.
+     */
+    public static function repair_penalised_rawgrade(?int $courseid = null): void {
+        global $CFG, $DB;
+
+        require_once($CFG->dirroot . '/mod/assign/lib.php');
+
+        $params = [];
+        $singlecoursesql = '';
+        if ($courseid !== null) {
+            $singlecoursesql = 'AND gi.courseid = :courseid';
+            $params['courseid'] = $courseid;
+        }
+
+        // Find grade items with penalised grades that may need to be repaired.
+        $sql = "SELECT DISTINCT gi.id
+                  FROM {grade_items} gi
+                  JOIN {grade_grades} gg ON gg.itemid = gi.id
+                 WHERE gg.deductedmark > 0
+                   AND gg.rawgrade IS NOT NULL
+                   AND gi.locked = 0
+                   AND gg.locked = 0
+                   AND gg.overridden = 0
+                   AND gi.gradetype = :gradetype
+                   $singlecoursesql";
+
+        $params['gradetype'] = GRADE_TYPE_VALUE;
+        $itemids = $DB->get_fieldset_sql($sql, $params);
+
+        $affecteditemids = [];
+        $affectedcourseids = [];
+
+        foreach ($itemids as $itemid) {
+            $gradeitem = grade_item::fetch(['id' => $itemid]);
+            // Only Assignment grade items have a raw grade that can be retrieved from
+            // the Assignment gradebook API.
+            if (!$gradeitem || $gradeitem->itemtype !== 'mod' || $gradeitem->itemmodule !== 'assign') {
+                continue;
+            }
+
+            $assign = $DB->get_record('assign', ['id' => $gradeitem->iteminstance]);
+            if (!$assign) {
+                continue;
+            }
+
+            $sql = 'itemid = :itemid
+                    AND deductedmark > 0
+                    AND rawgrade IS NOT NULL
+                    AND locked = 0
+                    AND overridden = 0
+                    AND finalgrade IS NOT NULL';
+
+            $params = [
+                'itemid' => $itemid,
+            ];
+
+            $graderecords = $DB->get_recordset_select('grade_grades', $sql, $params);
+            foreach ($graderecords as $graderecord) {
+                // Use Assignment's gradebook API to obtain the raw grade for the current attempt.
+                $assigngrades = assign_get_user_grades($assign, $graderecord->userid);
+
+                if (
+                    !isset($assigngrades[$graderecord->userid])
+                    || (float)$assigngrades[$graderecord->userid]->rawgrade === -1.0
+                ) {
+                    continue;
+                }
+
+                $originalraw = $assigngrades[$graderecord->userid]->rawgrade;
+
+                if ($graderecord->rawgrade !== $originalraw) {
+                    // Assignment's current raw grade is the authoritative value. If it differs
+                    // from the stored gradebook rawgrade, repair the gradebook value.
+                    $DB->set_field('grade_grades', 'rawgrade', $originalraw, ['id' => (int)$graderecord->id]);
+
+                    $affecteditemids[$itemid] = true;
+                    $affectedcourseids[$gradeitem->courseid] = true;
+                }
+            }
+            $graderecords->close();
+        }
+
+        // Mark the affected grade items for recalculation using the repaired rawgrade.
+        if ($affecteditemids) {
+            [$sql, $params] = $DB->get_in_or_equal(array_keys($affecteditemids));
+            $DB->set_field_select('grade_items', 'needsupdate', 1, "id $sql", $params);
+        }
+        // Mark the affected course totals for recalculation.
+        if ($affectedcourseids) {
+            [$sql, $params] = $DB->get_in_or_equal(array_keys($affectedcourseids));
+            $DB->set_field_select('grade_items', 'needsupdate', 1, "itemtype = 'course' AND courseid $sql", $params);
+        }
     }
 
     /**

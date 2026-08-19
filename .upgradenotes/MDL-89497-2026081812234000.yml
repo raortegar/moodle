@@ -1,0 +1,14 @@
+issueNumber: MDL-89497
+notes:
+  core_grades:
+    - message: >-
+        Courses containing a grade with a penalty deducted from it are now
+        frozen on upgrade to prevent existing grades from being changed
+        unexpectedly by a regrade (see MDL-88407). The pre-MDL-88407
+        calculation is retained until a user with the `moodle/grade:manage`
+        capability reviews the affected grades and chooses whether to keep the
+        existing grades or apply the fix. When the fix is applied, Assignment
+        grades are used as the authoritative source to restore the affected
+        `rawgrade` values before normal gradebook processing recalculates the
+        final grades.
+      type: changed

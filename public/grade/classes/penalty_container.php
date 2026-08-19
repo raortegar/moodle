@@ -110,7 +110,15 @@ final class penalty_container {
      * @return float The raw grade before any penalty or grade-item adjustment
      */
     public function get_grade_before_penalties(): float {
-        return $this->gradegrade->rawgrade;
+        // Check to see if the gradebook is frozen. This allows grades to not be altered at all until a user verifies that they
+        // wish to update the grades.
+        $gradebookcalculationsfreeze = get_config('core', 'gradebook_calculations_freeze_' . $this->gradeitem->courseid);
+        // Stick with the original code if the grade book is frozen.
+        if ($gradebookcalculationsfreeze && (int)$gradebookcalculationsfreeze <= 20260808) {
+            return $this->gradegrade->finalgrade;
+        } else {
+            return $this->gradegrade->rawgrade;
+        }
     }
 
     /**

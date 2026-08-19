@@ -269,6 +269,40 @@ function upgrade_calculated_grade_items($courseid = null) {
 }
 
 /**
+ * Freezes gradebook calculations for courses that may be affected by MDL-88407.
+ *
+ * Used during upgrade and course restore to prevent existing grades from being silently changed.
+ *
+ * @param int|null $courseid Specify a course ID to run this script on just one course.
+ */
+function upgrade_penalty_calculation_freeze(?int $courseid = null) {
+    global $DB;
+
+    $params = [];
+    $singlecoursesql = '';
+    if ($courseid !== null) {
+        $singlecoursesql = 'AND gi.courseid = :courseid';
+        $params['courseid'] = $courseid;
+    }
+
+    // Find courses containing grade items that may be affected by the bug.
+    $sql = "SELECT DISTINCT gi.courseid
+              FROM {grade_items} gi
+              JOIN {grade_grades} gg ON gg.itemid = gi.id
+             WHERE gg.deductedmark > 0
+               $singlecoursesql";
+    $affectedcourseids = $DB->get_fieldset_sql($sql, $params);
+
+    foreach ($affectedcourseids as $affectedcourseid) {
+        // Check to see if the gradebook freeze is already in effect.
+        $gradebookfreeze = get_config('core', 'gradebook_calculations_freeze_' . $affectedcourseid);
+        if (!$gradebookfreeze) {
+            set_config('gradebook_calculations_freeze_' . $affectedcourseid, 20260808);
+        }
+    }
+}
+
+/**
  * This function creates a default separated/connected scale
  * so there's something in the database.
  *

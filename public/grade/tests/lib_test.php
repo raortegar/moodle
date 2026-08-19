@@ -1033,4 +1033,99 @@ final class lib_test extends \advanced_testcase {
         $gradableusers = \grade_report::get_gradable_users($course->id, $group2->id);
         $this->assertEqualsCanonicalizing([$student3->id], array_keys($gradableusers));
     }
+
+    /**
+     * Test that accepting the gradebook calculations freeze repairs a legacy penalised rawgrade before
+     * regrading.
+     *
+     * @covers ::print_natural_aggregation_upgrade_notice
+     * @covers \core_grades\penalty_manager::repair_penalised_rawgrade
+     */
+    public function test_accept_gradebook_freeze_repairs_penalised_rawgrade(): void {
+        global $DB, $USER;
+
+        $this->resetAfterTest();
+        $this->setAdminUser();
+
+        $course = $this->getDataGenerator()->create_course();
+        $user = $this->getDataGenerator()->create_user();
+        $this->getDataGenerator()->enrol_user($user->id, $course->id, 'student');
+        // Use a mod_assign grade item: manual grade items skip raw->final recalculation entirely
+        // (grade_item::regrade_final_grades() treats their finalgrade as authoritative), so a manual
+        // item would not exercise the regrade path this test is verifying.
+        $assign = $this->getDataGenerator()->create_module('assign', ['course' => $course->id, 'grade' => 200]);
+
+        // Create an Assignment submission and grade so the repair can retrieve the authoritative raw grade
+        // through Assignment's gradebook API.
+        $now = time();
+        $DB->insert_record('assign_submission', (object)[
+            'assignment' => $assign->id,
+            'userid' => $user->id,
+            'timecreated' => $now,
+            'timemodified' => $now,
+            'status' => ASSIGN_SUBMISSION_STATUS_SUBMITTED,
+            'groupid' => 0,
+            'attemptnumber' => 0,
+            'latest' => 1,
+        ]);
+        $DB->insert_record('assign_grades', (object)[
+            'assignment' => $assign->id,
+            'userid' => $user->id,
+            'timecreated' => $now,
+            'timemodified' => $now,
+            'grader' => 2,
+            'grade' => 50,
+            'attemptnumber' => 0,
+        ]);
+
+        grade_update(
+            source: 'mod/assign',
+            courseid: $course->id,
+            itemtype: 'mod',
+            itemmodule: 'assign',
+            iteminstance: $assign->id,
+            itemnumber: 0,
+            grades: ['userid' => $user->id, 'rawgrade' => 50],
+            itemdetails: ['multfactor' => 2.0, 'plusfactor' => 5.0],
+        );
+
+        $gradeitem = grade_item::fetch([
+            'courseid' => $course->id,
+            'itemtype' => 'mod',
+            'itemmodule' => 'assign',
+            'iteminstance' => $assign->id,
+            'itemnumber' => 0,
+        ]);
+
+        // Simulate a grade affected by the pre-MDL-88407 bug. The original raw grade was 50, but the
+        // legacy calculation stored the penalised, factor-adjusted value of 85 as rawgrade and calculated
+        // the final grade from that incorrect value.
+        $grade = $gradeitem->get_grade($user->id, true);
+        $grade->rawgrade = 85;
+        $grade->deductedmark = 20;
+        $grade->finalgrade = 175;
+        $grade->update();
+
+        // Freeze the course, as the upgrade step would have done.
+        set_config('gradebook_calculations_freeze_' . $course->id, 20260808);
+
+        // Simulate the teacher clicking "Accept grade changes and fix calculation errors".
+        $_GET['acceptgradebookchanges'] = true;
+        $USER->ignoresesskey = true;
+        $context = \context_course::instance($course->id);
+        $url = new \moodle_url('/course/view.php', ['id' => $course->id]);
+        print_natural_aggregation_upgrade_notice($course->id, $context, $url, true);
+        unset($_GET['acceptgradebookchanges']);
+        $USER->ignoresesskey = false;
+
+        // The freeze must be lifted after accepting the grade calculation changes.
+        $this->assertEmpty(get_config('core', 'gradebook_calculations_freeze_' . $course->id));
+
+        // The original Assignment raw grade must be restored before regrading, so the corrected
+        // calculation produces the expected final grade.
+        $after = $gradeitem->get_final($user->id);
+        $this->assertEqualsWithDelta(50.0, (float)$after->rawgrade, 0.001);
+        $this->assertEqualsWithDelta(20.0, (float)$after->deductedmark, 0.001);
+        $this->assertEqualsWithDelta(65.0, (float)$after->finalgrade, 0.001);
+    }
 }

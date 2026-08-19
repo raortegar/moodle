@@ -874,14 +874,22 @@ class grade_item extends grade_object {
                     continue;
                 }
 
-                if ($grade->deductedmark > 0) {
-                    // A penalty is recorded on this grade. Preserve it by recalculating
-                    // from the penalised raw grade so that a full regrade does not silently
-                    // undo the penalty that penalty_manager already applied.
-                    $penalisedraw = max($this->grademin, $grade->rawgrade - $grade->deductedmark);
-                    $grade->finalgrade = $this->adjust_raw_grade($penalisedraw, $grade->rawgrademin, $grade->rawgrademax);
-                } else {
+                // Check to see if the gradebook is frozen. This allows grades to not be altered at all until a user verifies that
+                // they wish to update the grades.
+                $gradebookcalculationsfreeze = get_config('core', 'gradebook_calculations_freeze_' . $this->courseid);
+                // Stick with the original code if the grade book is frozen.
+                if ($gradebookcalculationsfreeze && (int)$gradebookcalculationsfreeze <= 20260808) {
                     $grade->finalgrade = $this->adjust_raw_grade($grade->rawgrade, $grade->rawgrademin, $grade->rawgrademax);
+                } else {
+                    if ($grade->deductedmark > 0) {
+                        // A penalty is recorded on this grade. Preserve it by recalculating
+                        // from the penalised raw grade so that a full regrade does not silently
+                        // undo the penalty that penalty_manager already applied.
+                        $penalisedraw = max($this->grademin, $grade->rawgrade - $grade->deductedmark);
+                        $grade->finalgrade = $this->adjust_raw_grade($penalisedraw, $grade->rawgrademin, $grade->rawgrademax);
+                    } else {
+                        $grade->finalgrade = $this->adjust_raw_grade($grade->rawgrade, $grade->rawgrademin, $grade->rawgrademax);
+                    }
                 }
 
                 if (grade_floats_different($grade_record->finalgrade, $grade->finalgrade)) {
@@ -2075,14 +2083,22 @@ class grade_item extends grade_object {
 
         // update final grade if possible
         if (!$grade->is_locked() and !$grade->is_overridden()) {
-            if ($grade->deductedmark > 0 && $rawgrade === false) {
-                // No new rawgrade was provided (e.g. a submission-date update). The existing
-                // penalty must be preserved: recalculate finalgrade from the penalised raw grade
-                // rather than the plain rawgrade, so that the penalty indicator remains visible.
-                $penalisedraw = max($this->grademin, $grade->rawgrade - $grade->deductedmark);
-                $grade->finalgrade = $this->adjust_raw_grade($penalisedraw, $grade->rawgrademin, $grade->rawgrademax);
-            } else {
+            // Check to see if the gradebook is frozen. This allows grades to not be altered at all until a user verifies that they
+            // wish to update the grades.
+            $gradebookcalculationsfreeze = get_config('core', 'gradebook_calculations_freeze_' . $this->courseid);
+            // Stick with the original code if the grade book is frozen.
+            if ($gradebookcalculationsfreeze && (int)$gradebookcalculationsfreeze <= 20260808) {
                 $grade->finalgrade = $this->adjust_raw_grade($grade->rawgrade, $grade->rawgrademin, $grade->rawgrademax);
+            } else {
+                if ($grade->deductedmark > 0 && $rawgrade === false) {
+                    // No new rawgrade was provided (e.g. a submission-date update). The existing
+                    // penalty must be preserved: recalculate finalgrade from the penalised raw grade
+                    // rather than the plain rawgrade, so that the penalty indicator remains visible.
+                    $penalisedraw = max($this->grademin, $grade->rawgrade - $grade->deductedmark);
+                    $grade->finalgrade = $this->adjust_raw_grade($penalisedraw, $grade->rawgrademin, $grade->rawgrademax);
+                } else {
+                    $grade->finalgrade = $this->adjust_raw_grade($grade->rawgrade, $grade->rawgrademin, $grade->rawgrademax);
+                }
             }
         }
 
@@ -2114,8 +2130,18 @@ class grade_item extends grade_object {
         // end of hack alert
 
         // Only reset the deducted mark if the grade has changed.
-        if ($grade->timemodified !== $oldgrade->timemodified && $rawgrade !== false) {
-            $grade->deductedmark = 0;
+        // Check to see if the gradebook is frozen. This allows grades to not be altered at all until a user verifies that they
+        // wish to update the grades.
+        $gradebookcalculationsfreeze = get_config('core', 'gradebook_calculations_freeze_' . $this->courseid);
+        // Stick with the original code if the grade book is frozen.
+        if ($gradebookcalculationsfreeze && (int)$gradebookcalculationsfreeze <= 20260808) {
+            if ($grade->timemodified !== $oldgrade->timemodified) {
+                $grade->deductedmark = 0;
+            }
+        } else {
+            if ($grade->timemodified !== $oldgrade->timemodified && $rawgrade !== false) {
+                $grade->deductedmark = 0;
+            }
         }
 
         $gradechanged = false;

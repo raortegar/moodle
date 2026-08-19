@@ -686,6 +686,11 @@ function print_natural_aggregation_upgrade_notice($courseid, $context, $thispage
 
     if ($gradebookcalculationsfreeze) {
         if ($acceptgradebookchanges) {
+            // Repair rawgrade values affected by the legacy penalty calculation before lifting the
+            // freeze and regrading. Otherwise, the fixed calculation would be applied to the
+            // incorrectly calculated rawgrade.
+            \core_grades\penalty_manager::repair_penalised_rawgrade($courseid);
+
             // Accept potential changes in grades caused by extra credit bug MDL-49257.
             hide_gradebook_calculations_freeze_notice($courseid);
             $courseitem = grade_item::fetch_course_item($courseid);
