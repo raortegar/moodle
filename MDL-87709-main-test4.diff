@@ -1,0 +1,73 @@
+diff --git a/public/mod/assign/locallib.php b/public/mod/assign/locallib.php
+index f243e65e7e1..67c2b3bd712 100644
+--- a/public/mod/assign/locallib.php
++++ b/public/mod/assign/locallib.php
+@@ -3437,10 +3437,11 @@ class assign {
+     /**
+      * Calculate and update the agreed grade from marks.
+      *
+-     * @param stdClass $grade Grade object used by the assignment.
++    * @param stdClass $grade Grade object used by the assignment.
++    * @param bool $preservelegacygrades Preserve legacy/manual grades when completion conditions are not met.
+      * @return bool true if agreed grade has been updated
+      */
+-    public function calculate_and_save_agreed_grade(stdClass $grade): bool {
++    public function calculate_and_save_agreed_grade(stdClass $grade, bool $preservelegacygrades = true): bool {
+         if (!$this->is_using_multiple_marking()) {
+             return false;
+         }
+@@ -3451,11 +3452,28 @@ class assign {
+             return false;
+         }
+ 
++        // Marker allocation per attempt is not stored and legacy data may already have
++        // a grade without marker mark records, so keep marks here for guard checks.
++        $marks = $this->get_marks($grade->id, $grade->userid);
++
+         // Check if the conditions to determine an agreed grade are met.
+         if (!$this->can_determine_agreed_grade($grade->id, $grade->userid)) {
+             // When the conditions aren't met the agreed grade should be cleared.
+             // This should be configurable by the multi marking method.
+             if (isset($grade->grade) && $grade->grade != -1) {
++                if ($preservelegacygrades) {
++                    // Preserve existing manual/legacy grades.
++                    // Agreed grades set grader=-1, so non--1 values indicate manual grading.
++                    if (($grade->grader ?? null) !== -1) {
++                        return false;
++                    }
++
++                    // Preserve existing grades when there are no marker marks to recalculate from.
++                    // This avoids clearing pre-existing grades for legacy records.
++                    if (empty($marks)) {
++                        return false;
++                    }
++                }
+                 return $this->clear_agreed_grade($grade);
+             }
+             return false;
+@@ -3463,7 +3481,6 @@ class assign {
+ 
+         // Calculate the agreed grade based on the marks.
+         // Placeholder until multi marking methods have their own class.
+-        $marks = $this->get_marks($grade->id, $grade->userid);
+         switch ($this->get_instance()->multimarkmethod) {
+             case 'maximum':
+                 return $this->calculate_and_update_grade_from_maximum_mark($grade, $marks);
+@@ -8209,7 +8226,7 @@ class assign {
+             $this->calculate_and_save_overall_workflow_state($grade, $flags, $flags->workflowstate);
+         }
+ 
+-        if ($grade && !$this->calculate_and_save_agreed_grade($grade)) {
++        if ($grade && !$this->calculate_and_save_agreed_grade($grade, false)) {
+             // Update grade timemodified as it's used to prevent stale form submissions.
+             $timemodified = \core\di::get(\core\clock::class)->time();
+             $DB->set_field('assign_grades', 'timemodified', $timemodified, ['id' => $grade->id]);
+@@ -8288,7 +8305,7 @@ class assign {
+             $this->calculate_and_save_overall_workflow_state($grade, $flags, $flags->workflowstate);
+         }
+ 
+-        if ($grade && !$this->calculate_and_save_agreed_grade($grade)) {
++        if ($grade && !$this->calculate_and_save_agreed_grade($grade, false)) {
+             // Update grade timemodified as it's used to prevent stale form submissions.
+             $timemodified = \core\di::get(\core\clock::class)->time();
+             $DB->set_field('assign_grades', 'timemodified', $timemodified, ['id' => $grade->id]);
