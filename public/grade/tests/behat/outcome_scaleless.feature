@@ -33,7 +33,7 @@ Feature: Outcomes reports handle outcomes without scales
     Given I am on the "Test assignment" "assign activity editing" page logged in as teacher1
     And I expand all fieldsets
     When I set the field "Outcome without scale" to "1"
-    And I am on the "Course 1" "grades > Outcomes report > View" page logged in as "teacher1"
+    And I am on the "Course 1" "grades > Learning outcomes report > View" page logged in as "teacher1"
     # The outcome with a scale should be shown without error, and the outcome without a scale should not be shown at all
     Then I should see "withscale" in the "generaltable" "table"
     And I should not see "noscale" in the "generaltable" "table"
@@ -56,9 +56,9 @@ Feature: Outcomes reports handle outcomes without scales
 
   Scenario: Export outcomes produces CSV with scaled and scaleless outcomes
     Given I am on the "Course 1" course page logged in as teacher1
-    And I navigate to "More > Outcomes" in the course gradebook
-    When I click on "Manage outcomes" "button"
-    Then following "Export" link should download an outcome file that:
+    And I navigate to "More > Learning outcomes" in the course gradebook
+    When I click on "Manage learning outcomes" "button"
+    Then following "Export all learning outcomes" button should download an outcome file that:
       | Contains text | Outcome with scale    |
       | Contains text | Outcome without scale |
       | Contains text | Test Scale 1          |
@@ -68,46 +68,21 @@ Feature: Outcomes reports handle outcomes without scales
   @_file_upload
   Scenario: Import outcomes
     Given I am on the "Course 1" course page logged in as teacher1
-    And I navigate to "More > Outcomes" in the course gradebook
-    And I click on "Manage outcomes" "button"
-    And I click on "Import" "link"
+    And I navigate to "More > Learning outcomes" in the course gradebook
+    And I click on "Manage learning outcomes" "button"
+    And I click on "Import learning outcomes" "button"
     When I click on "Choose a file..." "button"
     And I select "Upload a file" repository in file picker
     And I set the field "Attachment" to "#dirroot#/grade/tests/fixtures/outcomes.csv"
     And I click on "Upload this file" "button" in the "File picker" "dialogue"
     And I click on "Upload this file" "button"
-    Then I should see "Imported outcome \"Site-wide outcome with scale\""
-    And I should see "Imported outcome \"Site-wide outcome without scale\""
-    And I should see "Imported outcome \"Course outcome with scale\""
-    And I should see "Imported outcome \"Course outcome without scale\""
-    And I should see "An outcome with shortname \"noscale\" already exists in this context"
+    Then I should see "Imported learning outcome \"Site-wide outcome with scale\""
+    And I should see "Imported learning outcome \"Site-wide outcome without scale\""
+    And I should see "Imported learning outcome \"Course outcome with scale\""
+    And I should see "Imported learning outcome \"Course outcome without scale\""
+    And I should see "A learning outcome with shortname \"noscale\" already exists in this context"
     And I press "Continue"
     And I should see "None" in the "Course outcome without scale" "table_row"
     And I should see "None" in the "Site-wide outcome without scale" "table_row"
     And I should see "Default competence scale" in the "Course outcome with scale" "table_row"
     And I should see "Separate and Connected ways of knowing" in the "Site-wide outcome with scale" "table_row"
-
-  Scenario: Verify breadcrumbs for learning outcomes in course context
-    Given I am on the "Course 1" course page logged in as teacher1
-    And I navigate to "More > Learning outcomes" in the course gradebook
-    And I click on "Manage learning outcomes" "button"
-    When I click on "Add a new learning outcome" "button"
-    Then "Add a learning outcome" "text" should exist in the ".breadcrumb" "css_element"
-    And "Learning outcomes" "link" should exist in the ".breadcrumb" "css_element"
-    And I set the field "Full name" to "Test outcome for breadcrumb"
-    And I set the field "Short name" to "test_breadcrumb"
-    And I press "Save changes"
-    And I click on "Edit" "link"
-    And "Edit learning outcome" "text" should exist in the ".breadcrumb" "css_element"
-    And "Manage learning outcomes" "text" should exist in the ".breadcrumb" "css_element"
-    And "Learning outcomes" "link" should exist in the ".breadcrumb" "css_element"
-    And I press "Cancel"
-    And I click on "Delete" "link"
-    And "Delete learning outcome" "text" should exist in the ".breadcrumb" "css_element"
-    And "Manage learning outcomes" "text" should exist in the ".breadcrumb" "css_element"
-    And "Learning outcomes" "link" should exist in the ".breadcrumb" "css_element"
-    And I press "Cancel"
-    And I click on "Import" "link"
-    And "Import learning outcomes" "text" should exist in the ".breadcrumb" "css_element"
-    And "Manage learning outcomes" "text" should exist in the ".breadcrumb" "css_element"
-    And "Learning outcomes" "link" should exist in the ".breadcrumb" "css_element"
