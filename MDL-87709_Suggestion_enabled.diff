@@ -1,0 +1,87 @@
+diff --git a/public/mod/assign/batchsetallocatedmarkerform.php b/public/mod/assign/batchsetallocatedmarkerform.php
+index 83e28201a8b..d07eaee0d9a 100644
+--- a/public/mod/assign/batchsetallocatedmarkerform.php
++++ b/public/mod/assign/batchsetallocatedmarkerform.php
+@@ -75,7 +75,7 @@ class mod_assign_batch_set_allocatedmarker_form extends moodleform {
+             $group = [];
+             if ($i > $requiredmarkercount) {
+                 // Add checkbox for optional markers.
+-                $checkbox = $mform->createElement('advcheckbox', "allocatedmarkerenabled[$i]", '', get_string('enable'));
++                $checkbox = $mform->createElement('advcheckbox', "allocatedmarkerenabled[$i]", '', get_string('markerenabled', 'assign'));
+                 if (!$manageoptional) {
+                     $checkbox->freeze();
+                 }
+diff --git a/public/mod/assign/gradingtable.php b/public/mod/assign/gradingtable.php
+index 152be6661ee..295562091d7 100644
+--- a/public/mod/assign/gradingtable.php
++++ b/public/mod/assign/gradingtable.php
+@@ -802,7 +802,7 @@ class assign_grading_table extends table_sql implements renderable {
+                 // Add a hidden field to get a value in the submission when not checked.
+                 $checkbox .= html_writer::empty_tag('input', ['type' => 'hidden', 'name' => $enabledfield, 'value' => 0]);
+                 $attributes = ['aria-label' => get_string('enableoptionalmarker', 'assign')];
+-                $checkbox .= html_writer::checkbox($enabledfield, 1, $checked, get_string('enable'), $attributes);
++                $checkbox .= html_writer::checkbox($enabledfield, 1, $checked, get_string('markerenabled', 'assign'), $attributes);
+             }
+ 
+             // Add a hidden field so the original marker is still in the submission when disabled.
+@@ -811,7 +811,10 @@ class assign_grading_table extends table_sql implements renderable {
+             $select = $hiddenselect . html_writer::select($markerlist, $markerfield, $markerid, false, $attributes);
+ 
+             // The id used for targetting the select strips brackets.
+-            $label = html_writer::label($label, 'menu' . str_replace(['[', ']'], '', $markerfield));
++            // The label is hidden visually because the column header already provides context,
++            // but it is kept for screen readers.
++            $label = html_writer::label($label, 'menu' . str_replace(['[', ']'], '', $markerfield), true,
++                ['class' => 'visually-hidden']);
+             return html_writer::div($label . $checkbox, 'optional-marker') . $select;
+         }
+ 
+@@ -825,7 +828,7 @@ class assign_grading_table extends table_sql implements renderable {
+                 'disabled' => true,
+                 'aria-label' => get_string('enableoptionalmarker', 'assign'),
+             ];
+-            $output .= html_writer::div(html_writer::checkbox($enabledfield, 1, $checked, get_string('enable'), $attributes));
++            $output .= html_writer::div(html_writer::checkbox($enabledfield, 1, $checked, get_string('markerenabled', 'assign'), $attributes));
+         }
+ 
+         if ($markerid) {
+diff --git a/public/mod/assign/lang/en/assign.php b/public/mod/assign/lang/en/assign.php
+index 729b198f17c..27cbeef8e65 100644
+--- a/public/mod/assign/lang/en/assign.php
++++ b/public/mod/assign/lang/en/assign.php
+@@ -406,6 +406,7 @@ $string['marker'] = 'Marker';
+ $string['markercount'] = 'Number of required markers';
+ $string['markercount_help'] = 'The number of required markers for the assignment. This does not include optional markers.';
+ $string['markercountdecreasevalidation'] = 'Cannot reduce required marker count as it will remove allocated markers.';
++$string['markerenabled'] = 'Marker enabled';
+ $string['markerfilter'] = 'Marker filter';
+ $string['markerfilternomarker'] = 'No marker';
+ $string['markernumber'] = 'Marker {$a}';
+diff --git a/public/mod/assign/locallib.php b/public/mod/assign/locallib.php
+index bbbbe3b3e22..93b9b4d9ae2 100644
+--- a/public/mod/assign/locallib.php
++++ b/public/mod/assign/locallib.php
+@@ -9111,7 +9111,7 @@ class assign {
+ 
+                 // Add checkbox for optional markers.
+                 if ($this->is_marker_optional($i)) {
+-                    $group[] = $mform->createElement('advcheckbox', "allocatedmarkerenabled[$i]", '', get_string('enable'));
++                    $group[] = $mform->createElement('advcheckbox', "allocatedmarkerenabled[$i]", '', get_string('markerenabled', 'assign'));
+                     $mform->setDefault("allocatedmarkerenabled[$i]", $allocatedmarker && $allocatedmarker->enabled);
+                     $mform->disabledIf("allocatedmarker[$i]", "allocatedmarkerenabled[$i]", 'eq', 0);
+                 }
+diff --git a/public/mod/assign/styles.css b/public/mod/assign/styles.css
+index a0f62548f50..b605dc62fab 100644
+--- a/public/mod/assign/styles.css
++++ b/public/mod/assign/styles.css
+@@ -314,10 +314,6 @@
+     margin-inline-end: 1rem;
+ }
+ 
+-.path-mod-assign .gradingtable .optional-marker input[type="checkbox"] {
+-    margin-left: auto;
+-}
+-
+ .path-mod-assign .gradingtable input[type="checkbox"] + label {
+     margin-left: 0.25rem;
+ }
