@@ -194,7 +194,52 @@ class settingpage implements
         if ($setting->plugin) {
             $name = $setting->plugin . $name;
         }
+
         $this->settings->{$name} = $setting;
+        return true;
+    }
+
+    /**
+     * Adds a setting before another setting on this settingpage.
+     *
+     * Settings appear (on the settingpage) in the order in which they're added.
+     *
+     * By default the new setting is appended after the existing settings. You can specify
+     * an existing setting on this page that the new setting should be inserted before. If the
+     * given sibling is not found, the setting is appended to the end (as it would be by
+     * default) and a developer debugging message is displayed.
+     *
+     * @param \core_admin\setting $setting is the setting object you want to add
+     * @param string $beforesibling The name of the existing setting (including the plugin
+     *      prefix if it has one, e.g. 'core_adminlogo') the new setting should be inserted before.
+     * @return bool true if successful, false if not
+     * @throws \coding_exception if the $beforesibling is empty string or is not string at all.
+     */
+    public function add_before(\core_admin\setting $setting, string $beforesibling): bool {
+        $name = $setting->name;
+        if ($setting->plugin) {
+            $name = $setting->plugin . $name;
+        }
+
+        if (trim($beforesibling) === '') {
+            throw new \coding_exception('Unexpected value of the beforesibling parameter');
+        }
+
+        if (!property_exists($this->settings, $beforesibling)) {
+            debugging('Sibling ' . $beforesibling . ' not found', DEBUG_DEVELOPER);
+            $this->settings->{$name} = $setting;
+            return true;
+        }
+
+        // Rebuild the settings list, inserting the new setting before the given sibling.
+        $reordered = new \stdClass();
+        foreach ((array) $this->settings as $key => $existing) {
+            if ($key === $beforesibling) {
+                $reordered->{$name} = $setting;
+            }
+            $reordered->{$key} = $existing;
+        }
+        $this->settings = $reordered;
         return true;
     }
 

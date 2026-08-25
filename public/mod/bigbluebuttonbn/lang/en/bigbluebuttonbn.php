@@ -164,6 +164,8 @@ $string['config_recording_safe_formats'] = 'Recording formats viewable by everyo
 $string['config_recording_safe_formats_description'] = 'Select the formats which are viewable by everyone.
 All other formats are only viewable by teachers and other users with the mod/bigbluebuttonbn:viewallrecordingformats and
  mod/bigbluebuttonbn:managerecordings capabilities.';
+$string['config_recording_safe_formats_noselection'] = 'No formats selected';
+$string['config_recording_safe_formats_placeholder'] = 'Select recording formats...';
 $string['config_recordingready_enabled'] = 'Send recording available notification';
 $string['config_recordingready_enabled_description'] = 'If enabled, a notification will be sent when a recording link is available. This feature requires the script post_publish_recording_ready_callback to be enabled on the BigBlueButton server.';
 $string['config_recordings'] = 'Show recordings';
@@ -457,6 +459,13 @@ $string['subplugintype_bbbext'] = 'BigBlueButton activity extension';
 $string['subplugintype_bbbext_plural'] = 'BigBlueButton activity extensions';
 $string['taskname:check_dismissed_recordings'] = 'Check for recordings that haven\'t been found yet';
 $string['taskname:check_pending_recordings'] = 'Fetch pending recordings';
+$string['unconfigured_chooser_admin'] = 'BigBlueButton is not configured. Please complete the setup in Site administration.';
+$string['unconfigured_chooser_user'] = 'BigBlueButton is not available. Please contact your site administrator to complete the setup.';
+$string['unconfigured_view_admin'] = 'The BigBlueButton server is not yet configured. You can complete the setup in Site administration.';
+$string['unconfigured_view_heading'] = 'BigBlueButton is not yet configured';
+$string['unconfigured_view_settings_link'] = 'BigBlueButton settings';
+$string['unconfigured_view_student'] = 'BigBlueButton is not available. Please contact your teacher.';
+$string['unconfigured_view_teacher'] = 'BigBlueButton is not available. Please contact your site administrator to complete the setup.';
 $string['userlimitreached'] = 'The number of users allowed in a session has been reached.';
 $string['view_conference_action_end'] = 'End session';
 $string['view_conference_action_join'] = 'Join session';

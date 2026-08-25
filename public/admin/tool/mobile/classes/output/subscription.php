@@ -25,6 +25,8 @@
 
 namespace tool_mobile\output;
 
+use tool_mobile\api;
+
 /**
  * Subscription page.
  *
@@ -55,10 +57,10 @@ class subscription implements \renderable, \templatable {
     /**
      * Exports the data.
      *
-     * @param \renderer_base $output
+     * @param \core\output\renderer_base $output
      * @return array with the subscription information
      */
-    public function export_for_template(\renderer_base $output): array {
+    public function export_for_template(\core\output\renderer_base $output): array {
         global $CFG, $USER;
 
         $ms = get_config('tool_mobile');    // Get mobile settings.
@@ -153,10 +155,16 @@ class subscription implements \renderable, \templatable {
         unset($data['messages']);
 
         // Derive plan flags for template logic-less checks.
-        if (!empty($data['subscription']['plan'])) {
-            $data['subscription']['isfree'] = ($data['subscription']['plan'] === 'free');
-            $data['subscription']['ispremium'] =
-                ($data['subscription']['plan'] === 'premium' || $data['subscription']['plan'] === 'bma');
+        $currentplan = api::get_normalized_plan($data, false);
+        $data['subscription']['isfree'] = ($currentplan === 'free');
+        $data['subscription']['ispremium'] = api::is_premium_or_bma_plan($data, false);
+        if (!empty($data['subscription']['isfree'])) {
+            if (api::has_matomo_additional_html()) {
+                $data['morecurrentsetup']['matomoinapp'] = 1;
+            }
+            if (!empty(get_config('core_admin', 'logo')) || !empty(get_config('core_admin', 'logocompact'))) {
+                $data['morecurrentsetup']['logoinapp'] = 1;
+            }
         }
 
         if (!empty($data['subscription']['expiretime'])) {
