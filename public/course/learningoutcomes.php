@@ -81,7 +81,7 @@ if (empty($CFG->enableoutcomes)) {
 
         foreach ($outcomes as $outcome) {
             $outcomenameraw = $outcome->get_name();
-            $outcomename = format_string($outcome->get_name(), true, ['context' => $context]);
+            $outcomename = format_string($outcomenameraw, true, ['context' => $context]);
             $outcomedata = [
                 'id' => $outcome->id,
                 'name' => $outcomenameraw,
