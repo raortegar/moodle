@@ -32,6 +32,7 @@ $action   = optional_param('action', '', PARAM_ALPHA);
 $url = new moodle_url('/grade/edit/outcome/index.php', ['id' => $courseid]);
 $PAGE->set_url($url);
 $PAGE->set_pagelayout('admin');
+$heading = get_string('manageoutcomes', 'grades');
 
 /// Make sure they can even access this course
 if ($courseid) {
