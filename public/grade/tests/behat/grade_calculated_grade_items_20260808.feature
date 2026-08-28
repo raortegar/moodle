@@ -1,5 +1,5 @@
 @core @core_grades
-Feature: Gradebook calculation freeze for MDL-88407
+Feature: Gradebook calculation freeze for 20260808
   In order to prevent existing grades from changing unexpectedly after upgrade
   As a teacher
   I need to be able to review and accept grade calculation changes

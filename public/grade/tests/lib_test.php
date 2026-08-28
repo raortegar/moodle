@@ -1114,7 +1114,7 @@ final class lib_test extends \advanced_testcase {
         $USER->ignoresesskey = true;
         $context = \context_course::instance($course->id);
         $url = new \moodle_url('/course/view.php', ['id' => $course->id]);
-        print_natural_aggregation_upgrade_notice($course->id, $context, $url, true);
+        print_natural_aggregation_upgrade_notice($course->id, $context, $url->out(), true);
         unset($_GET['acceptgradebookchanges']);
         $USER->ignoresesskey = false;
 

@@ -378,7 +378,7 @@ class penalty_manager {
 
                 $originalraw = $assigngrades[$graderecord->userid]->rawgrade;
 
-                if ($graderecord->rawgrade !== $originalraw) {
+                if (grade_floats_different($graderecord->rawgrade, $originalraw)) {
                     // Assignment's current raw grade is the authoritative value. If it differs
                     // from the stored gradebook rawgrade, repair the gradebook value.
                     $DB->set_field('grade_grades', 'rawgrade', $originalraw, ['id' => (int)$graderecord->id]);

@@ -860,6 +860,7 @@ class grade_item extends grade_object {
             $rs = $DB->get_recordset('grade_grades', array('itemid' => $this->id), '', $fields);
         }
         if ($rs) {
+            $gradebookcalculationsfreeze = get_config('core', 'gradebook_calculations_freeze_' . $this->courseid);
             foreach ($rs as $grade_record) {
                 $grade = new grade_grade($grade_record, false);
 
@@ -876,7 +877,6 @@ class grade_item extends grade_object {
 
                 // Check to see if the gradebook is frozen. This allows grades to not be altered at all until a user verifies that
                 // they wish to update the grades.
-                $gradebookcalculationsfreeze = get_config('core', 'gradebook_calculations_freeze_' . $this->courseid);
                 // Stick with the original code if the grade book is frozen.
                 if ($gradebookcalculationsfreeze && (int)$gradebookcalculationsfreeze <= 20260808) {
                     $grade->finalgrade = $this->adjust_raw_grade($grade->rawgrade, $grade->rawgrademin, $grade->rawgrademax);
